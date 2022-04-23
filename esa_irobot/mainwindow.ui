@@ -44,7 +44,7 @@
       <property name="frameShadow">
        <enum>QFrame::Raised</enum>
       </property>
-      <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="40,0">
+      <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="0,0,0,0">
        <property name="spacing">
         <number>0</number>
        </property>
@@ -60,6 +60,59 @@
        <property name="bottomMargin">
         <number>0</number>
        </property>
+       <item>
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="Warning_Prekazka_text">
+         <property name="minimumSize">
+          <size>
+           <width>500</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>500</width>
+           <height>50</height>
+          </size>
+         </property>
+         <property name="sizeIncrement">
+          <size>
+           <width>500</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>14</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color: #f54242;
+background-color: #FFF;
+border: 2px solid #f54242;
+border-radius: 2px;</string>
+         </property>
+         <property name="text">
+          <string>V ceste je prekážka, naviguj na iné miesto</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
        <item>
         <spacer name="horizontalSpacer">
          <property name="orientation">
@@ -173,7 +226,10 @@ color:black;</string>
             <item>
              <widget class="QCheckBox" name="Mapping">
               <property name="styleSheet">
-               <string notr="true">color:white;</string>
+               <string notr="true">color: white; 
+background-color: rgba(0, 0, 0, 0.7);
+ border-style: outset; border-width: 1px; 
+border-color: beige</string>
               </property>
               <property name="text">
                <string>Mapping</string>
@@ -181,35 +237,16 @@ color:black;</string>
              </widget>
             </item>
             <item>
-             <widget class="QCheckBox" name="checkBox_3">
+             <widget class="QCheckBox" name="checkBox_skeleton">
               <property name="styleSheet">
-               <string notr="true">color:white;</string>
+               <string notr="true">color: white; 
+background-color: rgba(0, 0, 0, 0.7); 
+border-style: outset; 
+border-width: 1px; 
+border-color: beige</string>
               </property>
               <property name="text">
-               <string>show camera</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QCheckBox" name="checkBox_4">
-              <property name="styleSheet">
-               <string notr="true">color:white;</string>
-              </property>
-              <property name="text">
-               <string>show skeleton</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QCheckBox" name="checkBox_2">
-              <property name="styleSheet">
-               <string notr="true">color:white;</string>
-              </property>
-              <property name="text">
-               <string>show lidar</string>
-              </property>
-              <property name="checked">
-               <bool>true</bool>
+               <string>skeleton</string>
               </property>
              </widget>
             </item>

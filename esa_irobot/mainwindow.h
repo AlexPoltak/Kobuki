@@ -332,14 +332,14 @@ private slots:
 
 //    void on_pushButton_13_clicked();
 
-    void on_checkBox_2_clicked(bool checked);
+//    void on_checkBox_2_clicked(bool checked);
 
 //    void on_checkBox_3_clicked(bool checked);
 
 
     void on_checkBox_clicked(bool checked);
 
-    void on_checkBox_4_clicked(bool checked);
+    void on_checkBox_skeleton_clicked(bool checked);
 
     void on_Mapping_clicked(bool checked);
 
