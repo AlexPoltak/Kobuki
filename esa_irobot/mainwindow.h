@@ -363,7 +363,7 @@ private:
 
 
     float distPointToLine(float point_x, float point_y, float line_x1, float line_y1, float line_x2, float line_y2);
-    double ramp(double speed,int incPercent,bool *start);
+    double ramp(double speed,double inc,bool *start);
     double euclidDist(double x1,double y1,double x2,double y2);
     bool inRange(double low, double high, double x);
     void go(double speed);
