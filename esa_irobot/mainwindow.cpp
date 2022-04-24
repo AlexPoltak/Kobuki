@@ -775,12 +775,12 @@ int MainWindow::autonomouslaser(LaserMeasurement &laserData)
 {
     cout<<laserData.Data[0].scanDistance/1000.0<<"vtvrvr"<<endl;
 
-    if(laserData.Data[0].scanDistance/1000.0<0.14)
-    {
-        cout<<"zastavil som"<<endl;
-        sendRobotCommand(ROBOT_STOP);
-        requiredPosX.clear();
-    }
+//    if(laserData.Data[0].scanDistance/1000.0<0.14)
+//    {
+//        cout<<"zastavil som"<<endl;
+//        sendRobotCommand(ROBOT_STOP);
+//        requiredPosX.clear();
+//    }
     ///PASTE YOUR CODE HERE
     /// ****************
     ///
@@ -937,6 +937,9 @@ void MainWindow::paintEvent(QPaintEvent *event)
                 }
                 if(robotMap2[k][l]==-1){
                     Image.setPixelColor((int)(k-minMapX),(int)(l-minMapY),QColor(255,0,0,255));
+                }
+                if(robotMap2[k][l]==2){
+                    Image.setPixelColor((int)(k-minMapX),(int)(l-minMapY),QColor(255,255,255,255));
                 }
 
             }
@@ -1302,15 +1305,11 @@ void MainWindow::on_pushButton_12_clicked()
 
 bool MainWindow::navigate_to_selected_point(int Xcell,int Ycell)
 {
-//    int Xcell=(3.5*10.0)+60.0;
-//    int Ycell=(2.0*10.0)+60.0;
-cout<<"tu som"<<endl;
     int XStart=(int)(robotX*10.0)+60.0;
     int YStart=(int)(robotY*10.0)+60.0;
 
-
-    string smerX="";
-    string previousX="";
+    string direction="";
+    string previousDirection=" ";
 
     int Xcandinate=0;
     int Ycandinate=0;
@@ -1322,7 +1321,6 @@ cout<<"tu som"<<endl;
 
     std::copy(&robotMapWide[0][0], &robotMapWide[0][0]+120*120,&robotMapWide_Navigate[0][0]);
 
-//    robotMapWide[Xcell][Ycell]=2;
     robotMapWide_Navigate[Xcell][Ycell]=2;
 
     mapNav.push_back(make_tuple(Xcell+1,Ycell,3));
@@ -1337,10 +1335,10 @@ cout<<"tu som"<<endl;
         Ycandinate=get<1>(mapNav.front());
 
         if (robotMapWide_Navigate[Xcandinate][Ycandinate]==0){
-           //Writing index if a candidate is 0
+           //Writing index to map if a candidate is 0
             robotMapWide_Navigate[Xcandinate][Ycandinate]=get<2>(mapNav.front());
 
-           //adding neighbors as candidates
+           //adding neighbors with index as candidates
             if(Xcandinate+1<=120    &&  Ycandinate<=120    &&  Ycandinate>=0){
                 mapNav.push_back(make_tuple(Xcandinate+1,Ycandinate,get<2>(mapNav.front())+1));
             }
@@ -1362,37 +1360,7 @@ cout<<"tu som"<<endl;
     }while (!(Xcandinate==XStart&&Ycandinate==YStart)   &&  inc<120);
 
 
-    if(inc==120){return false;
-
-
-        ofstream mapFile;
-        mapFile.open("indexes.txt");
-
-        if(mapFile){
-        cout<<"cannot file";}
-
-            for (int i=120; i> 0;i--) //This variable is for each row below the x
-            {
-                for (int j=0; j<120;j++)
-                {
-                    if(robotMapWide_Navigate[j][i]==0){
-                        mapFile << "    ";
-                    }
-                    else if(robotMapWide_Navigate[j][i]<10&&robotMapWide_Navigate[j][i]>0){
-                        mapFile << " "<<robotMapWide_Navigate[j][i]<<"  ";
-                    }
-                    else{
-                        mapFile << " "<<robotMapWide_Navigate[j][i]<<" ";
-
-                    }
-    //                if(i==70&&j==67){ mapFilee << " 99 ";}
-
-                }
-                mapFile<<std::endl;
-
-            }
-            mapFile.close();
-    }
+    if(inc==120){return false;}
 
 
 
@@ -1402,7 +1370,6 @@ cout<<"tu som"<<endl;
         Ycandinate=YStart;
         int Xcac=XStart;
         int Ycac=YStart;
-        robotMapWide_Navigate[Xcandinate][Ycandinate]=-2;
         inc=inc-2;
         do{
 
@@ -1411,7 +1378,7 @@ cout<<"tu som"<<endl;
                 Ycac=Ycandinate;
                 Xcandinate=Xcandinate+1;
                 inc=inc-1;
-                smerX="doprava";
+                direction="right";
 
             }
             else if(robotMapWide_Navigate[Xcandinate-1][Ycandinate]==inc){
@@ -1420,7 +1387,7 @@ cout<<"tu som"<<endl;
                 Ycac=Ycandinate;
                 Xcandinate=Xcandinate-1;
                 inc=inc-1;
-                smerX="dolava";
+                direction="left";
 
             }
             else if(robotMapWide_Navigate[Xcandinate][Ycandinate+1]==inc){
@@ -1429,7 +1396,7 @@ cout<<"tu som"<<endl;
 
                 Ycandinate=Ycandinate+1;
                 inc=inc-1;
-                smerX="hore";
+                direction="up";
 
             }
             else if(robotMapWide_Navigate[Xcandinate][Ycandinate-1]==inc){
@@ -1439,13 +1406,13 @@ cout<<"tu som"<<endl;
                 Ycandinate=Ycandinate-1;
 
                 inc=inc-1;
-                smerX="dole";
+                direction="down";
 
             }
 
-            if (previousX!=smerX    &&  ((Xcac!=XStart)  ||  (Ycac!=YStart))){
+            if (previousDirection!=direction){
 
-                previousX=smerX;
+                previousDirection=direction;
                 robotMapWide_Navigate[Xcac][Ycac]=-3;
                 requiredPosX.push_back((double)((Xcac-60.0)/10.0));
                 requiredPosY.push_back(double((Ycac-60.0)/10.0));
@@ -1453,18 +1420,17 @@ cout<<"tu som"<<endl;
             else if(robotMapWide_Navigate[Xcac][Ycac]!=-2){robotMapWide_Navigate[Xcac][Ycac]=-1;}
 
 
-        }while (!(inc==2));
+        }while (!(inc==1));
 
+        robotMapWide_Navigate[XStart][YStart]=-2;
         requiredPosX.push_back((Xcell-60.0)/10.0);
         requiredPosY.push_back((Ycell-60.0)/10.0);
         requiredPosX.pop_front();
         requiredPosY.pop_front();
-
         endOfPositioning=false;
 
 
         std::copy(&robotMap[0][0], &robotMap[0][0]+120*120,&robotMap2[0][0]);
-
         ofstream mapFile;
         mapFile.open("indexes.txt");
 
@@ -1478,6 +1444,10 @@ cout<<"tu som"<<endl;
                     if(robotMapWide_Navigate[i][j]==-1||robotMapWide_Navigate[i][j]==-3)
                     {
                         robotMap2[i][j]=-1;
+                    }
+                    if(robotMapWide_Navigate[i][j]==2)
+                    {
+                        robotMap2[i][j]=2;
                     }
                     if(robotMapWide_Navigate[j][i]==0){
                         mapFile << "    ";
@@ -1536,7 +1506,7 @@ MainWindow::MainWindow(QWidget *parent) :
     showCamera=true;
     showLidar=true;
     showSkeleton=false;
-    applyDelay=true;
+    applyDelay=false;
     dl=0;
     stopall=1;
     prvyStart=true;
