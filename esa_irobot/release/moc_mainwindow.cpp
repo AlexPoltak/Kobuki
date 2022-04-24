@@ -92,7 +92,7 @@ static const uint qt_meta_data_MainWindow[] = {
 
  // slots: parameters
     QMetaType::Void,
-    QMetaType::Void, QMetaType::Int, QMetaType::Int,    6,    7,
+    QMetaType::Bool, QMetaType::Int, QMetaType::Int,    6,    7,
     QMetaType::Void, QMetaType::Bool,    9,
     QMetaType::Void, QMetaType::Bool,    9,
     QMetaType::Void, QMetaType::Bool,    9,
@@ -111,7 +111,8 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         switch (_id) {
         case 0: _t->uiValuesChanged((*reinterpret_cast< QString(*)>(_a[1]))); break;
         case 1: _t->on_pushButton_12_clicked(); break;
-        case 2: _t->navigate_to_selected_point((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2]))); break;
+        case 2: { bool _r = _t->navigate_to_selected_point((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2])));
+            if (_a[0]) *reinterpret_cast< bool*>(_a[0]) = std::move(_r); }  break;
         case 3: _t->on_checkBox_clicked((*reinterpret_cast< bool(*)>(_a[1]))); break;
         case 4: _t->on_checkBox_skeleton_clicked((*reinterpret_cast< bool(*)>(_a[1]))); break;
         case 5: _t->on_Mapping_clicked((*reinterpret_cast< bool(*)>(_a[1]))); break;

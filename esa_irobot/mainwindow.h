@@ -328,7 +328,7 @@ private slots:
 //    void on_pushButton_9_clicked();
 
     void on_pushButton_12_clicked();
-    void navigate_to_selected_point(int Xbunka,int Ybunka);
+    bool navigate_to_selected_point(int Xbunka,int Ybunka);
 
 //    void on_pushButton_13_clicked();
 

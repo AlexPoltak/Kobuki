@@ -167,6 +167,14 @@ int pomerY=0;
 double maxdist=0;
 
 
+
+
+
+double Xnavigate;
+double Ynavigate;
+
+
+bool showObstacleWarning=false;
 vector< tuple <double,double> > selectedPoints;
 
 double countTraveledDistance(unsigned short encoder,std::vector<int>& data,bool print)
@@ -328,7 +336,7 @@ void MainWindow::localrobot(TKobukiData &robotdata)
 
 if(requiredPosX.size()==0&&prevValGyro!=robotdata.GyroAngle){stop();
 cout<<"good"<<endl;}
-cout<<prekazka<<endl;
+
 if(requiredPosX.size()>0&&prekazka==false){
 
     //if robot is in surrounding of current setpoints then set all parameters and set new required position
@@ -397,10 +405,10 @@ if(requiredPosX.size()>0&&prekazka==false){
             {
                 outputAngleAction = P_reg_Angle.calculate(setpointAngle, robotdata.GyroAngle/100.0);
             }
-    //        else if((gyroAngle_0_360/100-setpointAngle)>180)
-    //        {
-    //            outputAngleAction = P_reg_Angle.calculate((setpointAngle), gyroAngle_180_180/100);
-    //        }
+            if((setpointAngle-gyroAngle_0_360/100)<-180)
+            {
+                outputAngleAction = P_reg_Angle.calculate((setpointAngle), robotdata.GyroAngle/100.0);
+            }
 
 
             //when is start of rotate the output from P angle regulator is limited by ramp
@@ -576,10 +584,10 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
 
 
 
-    if(checkrequiredPosX!=-1&&prekazka==false){
+    if(!requiredPosX.empty()&&prekazka==false){
         Point2f pt(xOfPoint, yOfPoint);
-        Point2f midpoint(robotX+   ((checkrequiredPosX-robotX)/2),robotY+    ((checkrequiredPosY-robotY)/2));
-        RotatedRect rr1 ( midpoint,Size2f(euclidDist(robotX,robotY,checkrequiredPosX,checkrequiredPosY),0.4), atan2(checkrequiredPosY - robotY, checkrequiredPosX - robotX)*180/PI);
+        Point2f midpoint(robotX+   ((requiredPosX.front()-robotX)/2),robotY+    ((requiredPosY.front()-robotY)/2));
+        RotatedRect rr1 ( midpoint,Size2f(euclidDist(robotX,robotY,requiredPosX.front(),requiredPosY.front()),0.4), atan2(requiredPosY.front() - robotY, requiredPosX.front() - robotX)*180/PI);
         Point2f vtx[4];
 
         rr1.points(vtx);
@@ -638,18 +646,26 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
     }
 
     if(prekazka==true){
-        ui->Warning_Prekazka_text->setVisible(true);
+        requiredPosX.clear();
+        requiredPosY.clear();
+
+        showObstacleWarning=navigate_to_selected_point((int)Xnavigate,(int)Ynavigate);
+        cout<<showObstacleWarning<<"prekazka"<<endl;
+        prekazka=false;
+        if(showObstacleWarning==false){
+            ui->Warning_Prekazka_text->setVisible(true);
+        }
     }
     if(prekazka==true&&selectedPoints.size()>0){
         selectedPoints.pop_back();
     }
-    if(prekazka==false&&checkrequiredPosX!=-1){
+//    if(prekazka==false&&checkrequiredPosX!=-1){
 
-        requiredPosX.push_back(checkrequiredPosX);
-        requiredPosY.push_back(checkrequiredPosY);
-        endOfPositioning=false;
+//        requiredPosX.push_back(checkrequiredPosX);
+//        requiredPosY.push_back(checkrequiredPosY);
+//        endOfPositioning=false;
 
-    }
+//    }
 
 
 //    if(prekazka==true&&endOfPositioning==false){
@@ -850,37 +866,20 @@ void MainWindow::paintEvent(QPaintEvent *event)
 //            cv::rectangle(robotPicture, cv::Point(robotPicture.cols-get<0>(fusionPoints[k])-3,get<1>(fusionPoints[k])+10), cv::Point(robotPicture.cols-get<0>(fusionPoints[k])+3,get<1>(fusionPoints[k])-10), Scalar(0,0,0), -1,LINE_4);
 
                 if(get<2>(fusionPoints[k])=="red"){
-                    pero.setColor(Qt::black);
-                    painter.setBrush(Qt::red);
                     cv::rectangle(robotPicture, cv::Point(robotPicture.cols-get<0>(fusionPoints[k])-2,get<1>(fusionPoints[k])+abs(get<3>(fusionPoints[k])-maxdist)/2), cv::Point(robotPicture.cols-get<0>(fusionPoints[k])+2,get<1>(fusionPoints[k])-abs(get<3>(fusionPoints[k])-maxdist)/2), Scalar(0,0,255), -1,LINE_4);
                 }
                 if(get<2>(fusionPoints[k])=="orange"){
-                    pero.setColor(Qt::black);
-                    painter.setBrush(QColor(255,131,0,255));
                     cv::rectangle(robotPicture, cv::Point(robotPicture.cols-get<0>(fusionPoints[k])-2,get<1>(fusionPoints[k])+abs(get<3>(fusionPoints[k])-maxdist)/2), cv::Point(robotPicture.cols-get<0>(fusionPoints[k])+2,get<1>(fusionPoints[k])-abs(get<3>(fusionPoints[k])-maxdist)/2), Scalar(0,128,255), -1,LINE_4);
-
                 }
                 if(get<2>(fusionPoints[k])=="yellow"){
-                    pero.setColor(Qt::black);
-                    painter.setBrush(Qt::yellow);
                     cv::rectangle(robotPicture, cv::Point(robotPicture.cols-get<0>(fusionPoints[k])-2,get<1>(fusionPoints[k])+abs(get<3>(fusionPoints[k])-maxdist)/2), cv::Point(robotPicture.cols-get<0>(fusionPoints[k])+2,get<1>(fusionPoints[k])-abs(get<3>(fusionPoints[k])-maxdist)/2), Scalar(0,255,255), -1,LINE_4);
-
                 }
-                if(get<2>(fusionPoints[k])=="gray"){
-                    pero.setColor(Qt::black);
-                    painter.setBrush(Qt::gray);
+                if(get<2>(fusionPoints[k])=="gray"){             
                     cv::rectangle(robotPicture, cv::Point(robotPicture.cols-get<0>(fusionPoints[k])-2,get<1>(fusionPoints[k])+abs(get<3>(fusionPoints[k])-maxdist)/2), cv::Point(robotPicture.cols-get<0>(fusionPoints[k])+2,get<1>(fusionPoints[k])-abs(get<3>(fusionPoints[k])-maxdist)/2), Scalar(128,128,128), -1,LINE_4);
-
                 }
-
-                painter.setPen(pero);
-
-
             }
         imgIn= QImage((uchar*) robotPicture.data, robotPicture.cols, robotPicture.rows, robotPicture.step, QImage::Format_BGR888);
-
         imgIn.operator=(imgIn.scaled(rect.width(),rect.height(),Qt::KeepAspectRatio,Qt::TransformationMode()));
-
         updateCameraPicture=0;
 
     }
@@ -960,39 +959,16 @@ void MainWindow::paintEvent(QPaintEvent *event)
 
         }
         if(show_Map_or_Camera=="map"){
-//            painter.drawImage(10,10,Image.scaled(ui->frame1->width()-220.0,ui->frame1->height()-20.0,Qt::KeepAspectRatio,Qt::TransformationMode()));
-//            Ypixels=ui->frame1->height()-20.0;
-//            Xpixels=ui->frame1->width()-220.0;
-//            pomerY=0;
-//            if((Xpixels/pocetBuniekX)<(Ypixels/pocetBuniekY)){
-//                pomer=(double)(Xpixels/pocetBuniekX);
-////                cout<<"pomer x"<<pomer<<endl;
-//                pomerY=(double)ui->frame1->height()-(pomer*pocetBuniekY);
-
-//            }
-//            else{
-//                pomer=(double)(Ypixels/pocetBuniekY);
-////                cout<<"pomer y"<<pomer<<endl;
-//            }
-
-//            double posunY=((60.0+(robotY*10.0)-minMapY)*pomer)-10.0;
-//            double posunX=(((robotX*10.0))*pomer)+((60.0-minMapX)*pomer);
-
-//            painter.drawEllipse(((60.0+(robotX*10.0)-minMapX)*pomer),  ui->frame1->height()-posunY-pomerY,3.0*pomer,3.0*pomer);
 
 
-
-            painter.drawImage(20,20,Image.scaled(ui->frame1->width()-240,ui->frame1->height()-40,Qt::KeepAspectRatio,Qt::TransformationMode()));
-            Ypixels=ui->frame1->height()-40;
-            Xpixels=ui->frame1->width()-240;
-//            cout<<Ypixels<<" YP "<<Xpixels<<" XP "<<endl;
-//            cout<<pocetBuniekY<<" pocetBuniekY "<<pocetBuniekX<<" pocetBuniekX "<<endl;
-//            cout<<pocetBuniekY<<" pocetBuniekY "<<pocetBuniekX<<" pocetBuniekX "<<endl;
+            painter.drawImage(80,80,Image.scaled(ui->frame1->width()-360,ui->frame1->height()-160,Qt::KeepAspectRatio,Qt::TransformationMode()));
+            Ypixels=ui->frame1->height()-160;
+            Xpixels=ui->frame1->width()-360;
 
             if((Xpixels/pocetBuniekX)<(Ypixels/pocetBuniekY)){
                 pomer=(double)(Xpixels/pocetBuniekX);
 //                cout<<"pomer x"<<pomer<<endl;
-                pomerY=(double)ui->frame1->height()-20-(pomer*pocetBuniekY);
+                pomerY=(double)ui->frame1->height()-80-(pomer*pocetBuniekY);
 
             }
             else{
@@ -1001,10 +977,10 @@ void MainWindow::paintEvent(QPaintEvent *event)
 
             }
 
-            double posunY=((60.0+(robotY*10.0)-minMapY)*pomer)+40.0;
+            double posunY=((60.0+(robotY*10.0)-minMapY)*pomer)+100.0;
             double posunX=(((robotX*10.0))*pomer)+((60.0-minMapX)*pomer);
             painter.setBrush((Qt::white));
-            painter.drawEllipse(((60.0+(robotX*10.0)-minMapX)*pomer)-10,  ui->frame1->height()-posunY-pomerY,3.0*pomer,3.0*pomer);
+            painter.drawEllipse(((60.0+(robotX*10.0)-minMapX)*pomer)+60,  ui->frame1->height()-posunY-pomerY,3.0*pomer,3.0*pomer);
 
 
 
@@ -1097,10 +1073,6 @@ void MainWindow::paintEvent(QPaintEvent *event)
 
            }
 
-//            int xp=720-720 * kostricka.joints[i].x;
-//            int yp=120+ 500 *kostricka.joints[i].y;
-
-//            painter.drawEllipse(QPoint(xp, yp),2,2);
         }
     }
 
@@ -1208,117 +1180,48 @@ void MainWindow::paintEvent(QPaintEvent *event)
                 painter.drawArc(rect1,9*16,42*16);
             }
 
-
-
-
-
-
-
-
-
-
-
-
-//    painter.drawArc(rect1,69*16,42*16);
-//    painter.drawArc(rect1,129*16,42*16);
-//    painter.drawArc(rect1,189*16,42*16);
-//    painter.drawArc(rect1,249*16,42*16);
-//    painter.drawArc(rect1,309*16,42*16);
-//    painter.drawArc(rect1,9*16,42*16);
-
-
-
-//    painter.setBrush(Qt::red);
-
-//    pero.setStyle(Qt::SolidLine);
-//    pero.setWidth(8);
-//    pero.setColor(Qt::red);
-//    painter.setPen(pero);
-//    painter.drawArc(rect2,67*16,44*16);
-//    painter.drawArc(rect2,127*16,45*16);
-//    painter.drawArc(rect2,189*16,44*16);
-//    painter.drawArc(rect2,249*16,44*16);
-//    painter.drawArc(rect2,308*16,44*16);
-//    painter.drawArc(rect2,8*16,44*16);
-
-
-
-//    painter.setBrush(Qt::red);
-
-//    pero.setStyle(Qt::SolidLine);
-//    pero.setWidth(8);
-//    pero.setColor(Qt::red);
-//    painter.setPen(pero);
-//    painter.drawArc(rect3,67*16,46*16);
-//    painter.drawArc(rect3,127*16,47*16);
-//    painter.drawArc(rect3,188*16,46*16);
-//    painter.drawArc(rect3,248*16,46*16);
-//    painter.drawArc(rect3,307*16,46*16);
-//    painter.drawArc(rect3,7*16,47*16);
-
-
-
-
-
 }
 
 
 
 void MainWindow::mousePressEvent(QMouseEvent *event)
 {
-    if (event->button() == Qt::LeftButton&&show_Map_or_Camera=="map"){
+    QPoint lastPoint = event->pos();
+
+    if (event->button() == Qt::LeftButton&&show_Map_or_Camera=="map"&&lastPoint.x()<(ui->frame1->width()-220)){
+
         if( ui->Warning_Prekazka_text->isVisible() )
         {
+            ui->Warning_Prekazka_text->setText("V ceste je prekážka, naviguj na iné miesto");
             ui->Warning_Prekazka_text->setVisible(false);
             prekazka=false;
-            checkrequiredPosX=-1;
-            checkrequiredPosY=-1;
-
+            showObstacleWarning=false;
         }
         else if(requiredPosX.empty()){
 
-            QPoint lastPoint = event->pos();
-            double X=(lastPoint.x()/pomer)+minMapX;
-            double Y=maxMapY-((lastPoint.y()-10.0)/pomer);
+            Xnavigate=((lastPoint.x()-80)/pomer)+minMapX;
+            Ynavigate=maxMapY-((lastPoint.y()-80.0)/pomer);
+            cout<<Xnavigate<<"XNAV"<<Ynavigate<<"YNAV"<<endl;
 
             if(mapping==true){
-//                requiredPosX.push_back((X-60.0)/10.0);
-//                requiredPosY.push_back((Y-60.0)/10.0);
-                checkrequiredPosX=(X-60.0)/10.0;
-                checkrequiredPosY=(Y-60.0)/10.0;
-
-//                endOfPositioning=false;
+                checkrequiredPosX=(Xnavigate-60.0)/10.0;
+                checkrequiredPosY=(Ynavigate-60.0)/10.0;
             }
 
-        //        if((Xpixels/pocetBuniekX)<(Ypixels/pocetBuniekY)){
-        //            pomer=(double)(Xpixels/pocetBuniekX);
-        //    //                cout<<"pomer x"<<pomer<<endl;
-        //            pomerY=(double)ui->frame1->height()-(pomer*pocetBuniekY);
-
-        //        }
-        //        else{
-        //            pomer=(double)(Ypixels/pocetBuniekY);
-        //    //                cout<<"pomer y"<<pomer<<endl;
-        //        }
-
-        //        double posunY=((60+(robotY*10)-minMapY)*pomer)+40;
-        //        double posunX=(((robotX*10))*pomer)+((60-minMapX)*pomer);
-
-
-        //        painter.drawEllipse(((60+(robotX*10)-minMapX)*pomer),  ui->frame1->height()-posunY-pomerY,3*pomer,3*pomer);
-
-        //        double X=(60+(robotX*10)-minMapX)*pomer;
-
-            cout<<lastPoint.x()<<" x "<<lastPoint.y()<<" y "<<X<<" X "<<Y<<" Y "<<minMapY<<"miny"<<maxMapY<<"maxY"<<endl;
-            selectedPoints.push_back(make_tuple((lastPoint.x()/pomer),((lastPoint.y()-10.0)/pomer)));
+//            cout<<lastPoint.x()<<" x "<<lastPoint.y()<<" y "<<X<<" X "<<Y<<" Y "<<minMapY<<"miny"<<maxMapY<<"maxY"<<endl;
+//            selectedPoints.push_back(make_tuple((lastPoint.x()/pomer),((lastPoint.y())/pomer)));
 
             if(mapping==false){
-                navigate_to_selected_point((int)X,(int)Y);
+                if(robotMapWide[(int)Xnavigate][(int)Ynavigate]!=1){
+                bool dobre=navigate_to_selected_point((int)Xnavigate,(int)Ynavigate);
+                }
+                else{
+                    ui->Warning_Prekazka_text->setText("Klikol si na prekážku, naviguj na iné miesto");
+                    ui->Warning_Prekazka_text->setVisible(true);
+                }
             }
-
         }
     }
-
 }
 
 
@@ -1371,7 +1274,7 @@ void MainWindow::on_pushButton_12_clicked()
 
 
 
-void MainWindow::navigate_to_selected_point(int Xcell,int Ycell)
+bool MainWindow::navigate_to_selected_point(int Xcell,int Ycell)
 {
 //    int Xcell=(3.5*10.0)+60.0;
 //    int Ycell=(2.0*10.0)+60.0;
@@ -1396,8 +1299,6 @@ cout<<"tu som"<<endl;
 
 //    robotMapWide[Xcell][Ycell]=2;
     robotMapWide_Navigate[Xcell][Ycell]=2;
-
-
 
     mapNav.push_back(make_tuple(Xcell+1,Ycell,3));
     mapNav.push_back(make_tuple(Xcell-1,Ycell,3));
@@ -1430,161 +1331,146 @@ cout<<"tu som"<<endl;
 
         }
         inc=get<2>(mapNav.front())+1;
-
         mapNav.pop_front();
 
-//cout <<Xcandinate<<" Xcandinate "<<YY<<" YY "<<(int)(robotX*10)+60<<" XS "<<(int)(robotY*10)+60<< "YS"<<endl;
 
-    }while (!(Xcandinate==XStart&&Ycandinate==YStart));
-
+    }while (!(Xcandinate==XStart&&Ycandinate==YStart)   &&  inc<120);
 
 
-//    cout<<inc<<"inc"<<smerX<<smerY<<endl;
+    if(inc==120){return false;
+
+
+        ofstream mapFile;
+        mapFile.open("indexes.txt");
+
+        if(mapFile){
+        cout<<"cannot file";}
+
+            for (int i=120; i> 0;i--) //This variable is for each row below the x
+            {
+                for (int j=0; j<120;j++)
+                {
+                    if(robotMapWide_Navigate[j][i]==0){
+                        mapFile << "    ";
+                    }
+                    else if(robotMapWide_Navigate[j][i]<10&&robotMapWide_Navigate[j][i]>0){
+                        mapFile << " "<<robotMapWide_Navigate[j][i]<<"  ";
+                    }
+                    else{
+                        mapFile << " "<<robotMapWide_Navigate[j][i]<<" ";
+
+                    }
+    //                if(i==70&&j==67){ mapFilee << " 99 ";}
+
+                }
+                mapFile<<std::endl;
+
+            }
+            mapFile.close();
+    }
+
 
 
     //find way from start to end
-    Xcandinate=XStart;
-    Ycandinate=YStart;
-    int Xcac=XStart;
-    int Ycac=YStart;
-    robotMapWide_Navigate[Xcandinate][Ycandinate]=-2;
-    inc=inc-2;
-    do{
+    if(inc<120){
+        Xcandinate=XStart;
+        Ycandinate=YStart;
+        int Xcac=XStart;
+        int Ycac=YStart;
+        robotMapWide_Navigate[Xcandinate][Ycandinate]=-2;
+        inc=inc-2;
+        do{
 
-        if(robotMapWide_Navigate[Xcandinate+1][Ycandinate]==inc){
-            direcionChange = (robotMapWide_Navigate[Xcandinate+2][Ycandinate]==inc-1) ?  false:true;
-
-
-
-
-//            if(smerX!="doprava" &&  ((Xcandinate!=XStart)  ||  (Ycandinate!=YStart))){
-
-//                robotMapWide[Xcandinate][Ycandinate]=-3;
-//                requiredPosX.push_back((Xcandinate-60.0)/10.0);
-//                requiredPosY.push_back((Ycandinate-60.0)/10.0);
-
-//            }
-//            else{robotMapWide[Xcandinate+1][Ycandinate]=-1;}
-            Xcac=Xcandinate;
-            Ycac=Ycandinate;
-            Xcandinate=Xcandinate+1;
-            inc=inc-1;
-            smerX="doprava";
-
-
-        }
-        else if(robotMapWide_Navigate[Xcandinate-1][Ycandinate]==inc){
-            direcionChange = (robotMapWide_Navigate[Xcandinate-2][Ycandinate]==inc-1) ?  false:true;
-
-
-//            if(smerX!="dolava"  &&  ((Xcandinate!=XStart)  ||  (Ycandinate!=YStart))){
-//                robotMapWide[Xcandinate][Ycandinate]=-3;
-//                requiredPosX.push_back((Xcandinate-60.0)/10.0);
-//                requiredPosY.push_back((Ycandinate-60.0)/10.0);
-//            }
-//            else{robotMapWide[Xcandinate-1][Ycandinate]=-1;}
-            Xcac=Xcandinate;
-            Ycac=Ycandinate;
-
-            Xcandinate=Xcandinate-1;
-            inc=inc-1;
-
-            smerX="dolava";
-
-        }
-        else if(robotMapWide_Navigate[Xcandinate][Ycandinate+1]==inc){
-            direcionChange = (robotMapWide_Navigate[Xcandinate][Ycandinate+2]==inc-1) ?  false:true;
-
-
-
-//            if(smerX!="hore"    &&  ((Xcandinate!=XStart)  ||  (Ycandinate!=YStart))){
-//                robotMapWide[Xcandinate][Ycandinate]=-3;
-//                requiredPosX.push_back((Xcandinate-60.0)/10.0);
-//                requiredPosY.push_back((Ycandinate-60.0)/10.0);
-//            }
-//            else{robotMapWide[Xcandinate][Ycandinate+1]=-1;}
-            Xcac=Xcandinate;
-            Ycac=Ycandinate;
-
-            Ycandinate=Ycandinate+1;
-            inc=inc-1;
-            smerX="hore";
-
-        }
-        else if(robotMapWide_Navigate[Xcandinate][Ycandinate-1]==inc){
-            direcionChange = (robotMapWide_Navigate[Xcandinate][Ycandinate-2]==inc-1) ?  false:true;
-
-
-
-//            if((smerX!="dole")    &&  ((Xcandinate!=XStart)  ||  (Ycandinate!=YStart))){
-//                robotMapWide[Xcandinate][Ycandinate]=-3;
-////                cout<<Xcandinate<<"Xcandinate"<<Ycandinate<<"YY"<<(Xcandinate-60)/10<<"VEVW"<<(Ycandinate-60)/10.0<<endl;
-//                requiredPosX.push_back((double)((Xcandinate-60.0)/10.0));
-//                requiredPosY.push_back(double((Ycandinate-60.0)/10.0));
-//            }
-//            else{robotMapWide[Xcandinate][Ycandinate-1]=-1;}
-            Xcac=Xcandinate;
-            Ycac=Ycandinate;
-
-            Ycandinate=Ycandinate-1;
-
-            inc=inc-1;
-            smerX="dole";
-
-        }
-
-if (previousX!=smerX    &&  ((Xcac!=XStart)  ||  (Ycac!=YStart))){
-
-    previousX=smerX;
-    robotMapWide_Navigate[Xcac][Ycac]=-3;
-    requiredPosX.push_back((double)((Xcac-60.0)/10.0));
-    requiredPosY.push_back(double((Ycac-60.0)/10.0));
-}
-else{robotMapWide_Navigate[Xcac][Ycac]=-1;}
-
-//        if((direcionChange)    &&  ((Xcandinate!=XStart)  ||  (Ycandinate!=YStart))){
-
-//            robotMapWide[Xcandinate][Ycandinate]=-3;
-////                cout<<Xcandinate<<"Xcandinate"<<Ycandinate<<"YY"<<(Xcandinate-60)/10<<"VEVW"<<(Ycandinate-60)/10.0<<endl;
-//            requiredPosX.push_back((double)((Xcandinate-60.0)/10.0));
-//            requiredPosY.push_back(double((Ycandinate-60.0)/10.0));
-//        }
-//        else{robotMapWide[Xcandinate][Ycandinate]=-1;}
-
-
-    }while (!(inc==2));
-
-    requiredPosX.push_back((Xcell-60.0)/10.0);
-    requiredPosY.push_back((Ycell-60.0)/10.0);
-    endOfPositioning=false;
-
-    ofstream mapFile;
-    mapFile.open("indexes.txt");
-
-    if(mapFile){
-    cout<<"cannot file";}
-
-        for (int i=120; i> 0;i--) //This variable is for each row below the x
-        {
-            for (int j=0; j<120;j++)
-            {
-                if(robotMapWide_Navigate[j][i]==0){
-                    mapFile << "    ";
-                }
-                else if(robotMapWide_Navigate[j][i]<10&&robotMapWide_Navigate[j][i]>0){
-                    mapFile << " "<<robotMapWide_Navigate[j][i]<<"  ";
-                }
-                else{
-                    mapFile << " "<<robotMapWide_Navigate[j][i]<<" ";
-
-                }
-//                if(i==70&&j==67){ mapFilee << " 99 ";}
+            if(robotMapWide_Navigate[Xcandinate+1][Ycandinate]==inc){
+                Xcac=Xcandinate;
+                Ycac=Ycandinate;
+                Xcandinate=Xcandinate+1;
+                inc=inc-1;
+                smerX="doprava";
 
             }
-            mapFile<<std::endl;
+            else if(robotMapWide_Navigate[Xcandinate-1][Ycandinate]==inc){
 
-        }
-        mapFile.close();
+                Xcac=Xcandinate;
+                Ycac=Ycandinate;
+                Xcandinate=Xcandinate-1;
+                inc=inc-1;
+                smerX="dolava";
+
+            }
+            else if(robotMapWide_Navigate[Xcandinate][Ycandinate+1]==inc){
+                Xcac=Xcandinate;
+                Ycac=Ycandinate;
+
+                Ycandinate=Ycandinate+1;
+                inc=inc-1;
+                smerX="hore";
+
+            }
+            else if(robotMapWide_Navigate[Xcandinate][Ycandinate-1]==inc){
+                Xcac=Xcandinate;
+                Ycac=Ycandinate;
+
+                Ycandinate=Ycandinate-1;
+
+                inc=inc-1;
+                smerX="dole";
+
+            }
+
+            if (previousX!=smerX    &&  ((Xcac!=XStart)  ||  (Ycac!=YStart))){
+
+                previousX=smerX;
+                robotMapWide_Navigate[Xcac][Ycac]=-3;
+                requiredPosX.push_back((double)((Xcac-60.0)/10.0));
+                requiredPosY.push_back(double((Ycac-60.0)/10.0));
+            }
+            else{robotMapWide_Navigate[Xcac][Ycac]=-1;}
+
+
+        }while (!(inc==2));
+
+        requiredPosX.push_back((Xcell-60.0)/10.0);
+        requiredPosY.push_back((Ycell-60.0)/10.0);
+        requiredPosX.pop_front();
+        requiredPosY.pop_front();
+
+        endOfPositioning=false;
+
+        ofstream mapFile;
+        mapFile.open("indexes.txt");
+
+        if(mapFile){
+        cout<<"cannot file";}
+
+            for (int i=120; i> 0;i--) //This variable is for each row below the x
+            {
+                for (int j=0; j<120;j++)
+                {
+                    if(robotMapWide_Navigate[j][i]==0){
+                        mapFile << "    ";
+                    }
+                    else if(robotMapWide_Navigate[j][i]<10&&robotMapWide_Navigate[j][i]>0){
+                        mapFile << " "<<robotMapWide_Navigate[j][i]<<"  ";
+                    }
+                    else{
+                        mapFile << " "<<robotMapWide_Navigate[j][i]<<" ";
+
+                    }
+    //                if(i==70&&j==67){ mapFilee << " 99 ";}
+
+                }
+                mapFile<<std::endl;
+
+            }
+            mapFile.close();
+
+
+        return true;
+    }
+
+
+
 
 
 }
@@ -2259,6 +2145,7 @@ void MainWindow::on_Mapping_clicked(bool checked)
     if(checked){
        mapping=true;
        ui->Mapping->setStyleSheet("color: black; background-color: white; border-style: outset; border-width: 1px; border-color: beige");
+       ui->showMap->animateClick();
 
     }
     if(!checked){
