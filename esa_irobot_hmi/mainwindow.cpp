@@ -662,7 +662,7 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
 
     }
 
-    if(prekazka==true){
+    if(prekazka==true&&mapping==false){
         requiredPosX.operator=({});
         requiredPosY.operator=({});
 
@@ -672,6 +672,13 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
         if(showObstacleWarning==false){
             ui->Warning_Prekazka_text->setVisible(true);
         }
+    }
+    if(prekazka==true&&mapping==true)
+    {
+        ui->Warning_Prekazka_text->setVisible(true);
+    }
+    if(prekazka==false&&mapping==true&&!requiredPosX.empty()){
+        endOfPositioning=false;
     }
     if(prekazka==true&&selectedPoints.size()>0){
         selectedPoints.pop_back();
@@ -1225,6 +1232,10 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             ui->Warning_Prekazka_text->setVisible(false);
             prekazka=false;
             showObstacleWarning=false;
+            if(mapping==true){
+                requiredPosX.pop_front();
+                requiredPosY.pop_front();
+            }
         }
         else if(requiredPosX.empty()){
 
@@ -1232,10 +1243,10 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             Ynavigate=maxMapY-((lastPoint.y()-80.0)/pomer);
             cout<<Xnavigate<<"XNAV"<<Ynavigate<<"YNAV"<<endl;
 
-//            if(mapping==true){
-//                checkrequiredPosX=(Xnavigate-60.0)/10.0;
-//                checkrequiredPosY=(Ynavigate-60.0)/10.0;
-//            }
+            if(mapping==true){
+                requiredPosX.push_back((Xnavigate-60.0)/10.0);
+                requiredPosY.push_back((Ynavigate-60.0)/10.0);
+            }
 
 //            cout<<lastPoint.x()<<" x "<<lastPoint.y()<<" y "<<X<<" X "<<Y<<" Y "<<minMapY<<"miny"<<maxMapY<<"maxY"<<endl;
             selectedPoints.push_back(make_tuple((lastPoint.x()/pomer),((lastPoint.y())/pomer)));
