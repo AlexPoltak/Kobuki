@@ -306,42 +306,12 @@ public:
     skeleton kostricka;
 private slots:
 
-//    void on_pushButton_3_clicked();
-
-//    void on_pushButton_7_clicked();
-
-//    void on_pushButton_5_clicked();
-
-//    void on_pushButton_4_clicked();
-
-//    void on_pushButton_6_clicked();
-
-//    void on_pushButton_clicked();
-  //  void robotexec();
-
-//    void on_pushButton_8_clicked();
-
-//    void on_pushButton_10_clicked();
-
-//    void on_pushButton_11_clicked();
-
-//    void on_pushButton_9_clicked();
 
     void on_pushButton_12_clicked();
-    bool navigate_to_selected_point(int Xbunka,int Ybunka);
-
-//    void on_pushButton_13_clicked();
-
-//    void on_checkBox_2_clicked(bool checked);
-
-//    void on_checkBox_3_clicked(bool checked);
-
 
     void on_checkBox_clicked(bool checked);
 
     void on_checkBox_skeleton_clicked(bool checked);
-
-    void on_Mapping_clicked(bool checked);
 
     void on_showMap_clicked(bool checked);
 

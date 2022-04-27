@@ -16,7 +16,6 @@
 #include <QtWidgets/QGroupBox>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QLabel>
-#include <QtWidgets/QLineEdit>
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QSpacerItem>
@@ -36,19 +35,10 @@ public:
     QLabel *Warning_Prekazka_text;
     QSpacerItem *horizontalSpacer;
     QVBoxLayout *verticalLayout_4;
+    QFrame *camWindow;
     QGroupBox *verticalGroupBox;
     QVBoxLayout *verticalLayout;
-    QHBoxLayout *horizontalLayout_2;
-    QLabel *label_2;
-    QLineEdit *lineEdit_2;
-    QHBoxLayout *horizontalLayout;
-    QLabel *label;
-    QLineEdit *lineEdit;
-    QHBoxLayout *horizontalLayout_3;
-    QLabel *label_3;
-    QLineEdit *lineEdit_3;
     QPushButton *pushButton_12;
-    QCheckBox *Mapping;
     QCheckBox *checkBox_skeleton;
     QHBoxLayout *horizontalLayout_6;
     QPushButton *showMap;
@@ -111,85 +101,32 @@ public:
         verticalLayout_4 = new QVBoxLayout();
         verticalLayout_4->setSpacing(6);
         verticalLayout_4->setObjectName(QString::fromUtf8("verticalLayout_4"));
+        camWindow = new QFrame(frame1);
+        camWindow->setObjectName(QString::fromUtf8("camWindow"));
+        camWindow->setMaximumSize(QSize(200, 200));
+        camWindow->setFrameShape(QFrame::StyledPanel);
+        camWindow->setFrameShadow(QFrame::Raised);
+
+        verticalLayout_4->addWidget(camWindow);
+
         verticalGroupBox = new QGroupBox(frame1);
         verticalGroupBox->setObjectName(QString::fromUtf8("verticalGroupBox"));
         verticalGroupBox->setMinimumSize(QSize(50, 0));
-        verticalGroupBox->setMaximumSize(QSize(100, 300));
+        verticalGroupBox->setMaximumSize(QSize(100, 100));
         verticalGroupBox->setLayoutDirection(Qt::RightToLeft);
         verticalGroupBox->setStyleSheet(QString::fromUtf8("background-color:rgba(0, 0, 0, 0.5);"));
         verticalLayout = new QVBoxLayout(verticalGroupBox);
         verticalLayout->setSpacing(6);
         verticalLayout->setContentsMargins(11, 11, 11, 11);
         verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
-        horizontalLayout_2 = new QHBoxLayout();
-        horizontalLayout_2->setSpacing(6);
-        horizontalLayout_2->setObjectName(QString::fromUtf8("horizontalLayout_2"));
-        label_2 = new QLabel(verticalGroupBox);
-        label_2->setObjectName(QString::fromUtf8("label_2"));
-        label_2->setStyleSheet(QString::fromUtf8("color:white;"));
-
-        horizontalLayout_2->addWidget(label_2);
-
-        lineEdit_2 = new QLineEdit(verticalGroupBox);
-        lineEdit_2->setObjectName(QString::fromUtf8("lineEdit_2"));
-        lineEdit_2->setReadOnly(true);
-
-        horizontalLayout_2->addWidget(lineEdit_2);
-
-
-        verticalLayout->addLayout(horizontalLayout_2);
-
-        horizontalLayout = new QHBoxLayout();
-        horizontalLayout->setSpacing(6);
-        horizontalLayout->setObjectName(QString::fromUtf8("horizontalLayout"));
-        label = new QLabel(verticalGroupBox);
-        label->setObjectName(QString::fromUtf8("label"));
-        label->setStyleSheet(QString::fromUtf8("color:white;"));
-
-        horizontalLayout->addWidget(label);
-
-        lineEdit = new QLineEdit(verticalGroupBox);
-        lineEdit->setObjectName(QString::fromUtf8("lineEdit"));
-        lineEdit->setReadOnly(true);
-
-        horizontalLayout->addWidget(lineEdit);
-
-
-        verticalLayout->addLayout(horizontalLayout);
-
-        horizontalLayout_3 = new QHBoxLayout();
-        horizontalLayout_3->setSpacing(6);
-        horizontalLayout_3->setObjectName(QString::fromUtf8("horizontalLayout_3"));
-        label_3 = new QLabel(verticalGroupBox);
-        label_3->setObjectName(QString::fromUtf8("label_3"));
-        label_3->setStyleSheet(QString::fromUtf8("color:white;"));
-
-        horizontalLayout_3->addWidget(label_3);
-
-        lineEdit_3 = new QLineEdit(verticalGroupBox);
-        lineEdit_3->setObjectName(QString::fromUtf8("lineEdit_3"));
-        lineEdit_3->setReadOnly(true);
-
-        horizontalLayout_3->addWidget(lineEdit_3);
-
-
-        verticalLayout->addLayout(horizontalLayout_3);
-
         pushButton_12 = new QPushButton(verticalGroupBox);
         pushButton_12->setObjectName(QString::fromUtf8("pushButton_12"));
-        pushButton_12->setStyleSheet(QString::fromUtf8("background-color:white;\n"
-"color:black;"));
+        pushButton_12->setStyleSheet(QString::fromUtf8("color: #f54242;\n"
+"background-color: #FFF;\n"
+"border: 2px solid #f54242;\n"
+"border-radius: 2px;"));
 
         verticalLayout->addWidget(pushButton_12);
-
-        Mapping = new QCheckBox(verticalGroupBox);
-        Mapping->setObjectName(QString::fromUtf8("Mapping"));
-        Mapping->setStyleSheet(QString::fromUtf8("color: white; \n"
-"background-color: rgba(0, 0, 0, 0.7);\n"
-" border-style: outset; border-width: 1px; \n"
-"border-color: beige"));
-
-        verticalLayout->addWidget(Mapping);
 
         checkBox_skeleton = new QCheckBox(verticalGroupBox);
         checkBox_skeleton->setObjectName(QString::fromUtf8("checkBox_skeleton"));
@@ -276,11 +213,7 @@ public:
     {
         MainWindow->setWindowTitle(QCoreApplication::translate("MainWindow", "MainWindow", nullptr));
         Warning_Prekazka_text->setText(QCoreApplication::translate("MainWindow", "V ceste je prek\303\241\305\276ka, naviguj na in\303\251 miesto", nullptr));
-        label_2->setText(QCoreApplication::translate("MainWindow", "Y:", nullptr));
-        label->setText(QCoreApplication::translate("MainWindow", "X:", nullptr));
-        label_3->setText(QCoreApplication::translate("MainWindow", "Fi:", nullptr));
-        pushButton_12->setText(QCoreApplication::translate("MainWindow", "naviguj", nullptr));
-        Mapping->setText(QCoreApplication::translate("MainWindow", "Mapping", nullptr));
+        pushButton_12->setText(QCoreApplication::translate("MainWindow", "STOP", nullptr));
         checkBox_skeleton->setText(QCoreApplication::translate("MainWindow", "skeleton", nullptr));
         showMap->setText(QCoreApplication::translate("MainWindow", "Map", nullptr));
         showCam->setText(QCoreApplication::translate("MainWindow", "Cam", nullptr));

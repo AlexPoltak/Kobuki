@@ -127,7 +127,23 @@ border-radius: 2px;</string>
         </spacer>
        </item>
        <item>
-        <layout class="QVBoxLayout" name="verticalLayout_4" stretch="0,0,0">
+        <layout class="QVBoxLayout" name="verticalLayout_4" stretch="0,0,0,0">
+         <item>
+          <widget class="QFrame" name="camWindow">
+           <property name="maximumSize">
+            <size>
+             <width>200</width>
+             <height>200</height>
+            </size>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+          </widget>
+         </item>
          <item>
           <widget class="QGroupBox" name="verticalGroupBox">
            <property name="minimumSize">
@@ -139,7 +155,7 @@ border-radius: 2px;</string>
            <property name="maximumSize">
             <size>
              <width>100</width>
-             <height>300</height>
+             <height>100</height>
             </size>
            </property>
            <property name="layoutDirection">
@@ -150,89 +166,15 @@ border-radius: 2px;</string>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout">
             <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_2">
-              <item>
-               <widget class="QLabel" name="label_2">
-                <property name="styleSheet">
-                 <string notr="true">color:white;</string>
-                </property>
-                <property name="text">
-                 <string>Y:</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLineEdit" name="lineEdit_2">
-                <property name="readOnly">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout">
-              <item>
-               <widget class="QLabel" name="label">
-                <property name="styleSheet">
-                 <string notr="true">color:white;</string>
-                </property>
-                <property name="text">
-                 <string>X:</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLineEdit" name="lineEdit">
-                <property name="readOnly">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_3">
-              <item>
-               <widget class="QLabel" name="label_3">
-                <property name="styleSheet">
-                 <string notr="true">color:white;</string>
-                </property>
-                <property name="text">
-                 <string>Fi:</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLineEdit" name="lineEdit_3">
-                <property name="readOnly">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item>
              <widget class="QPushButton" name="pushButton_12">
               <property name="styleSheet">
-               <string notr="true">background-color:white;
-color:black;</string>
+               <string notr="true">color: #f54242;
+background-color: #FFF;
+border: 2px solid #f54242;
+border-radius: 2px;</string>
               </property>
               <property name="text">
-               <string>naviguj</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QCheckBox" name="Mapping">
-              <property name="styleSheet">
-               <string notr="true">color: white; 
-background-color: rgba(0, 0, 0, 0.7);
- border-style: outset; border-width: 1px; 
-border-color: beige</string>
-              </property>
-              <property name="text">
-               <string>Mapping</string>
+               <string>STOP</string>
               </property>
              </widget>
             </item>

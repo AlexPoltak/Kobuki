@@ -17,7 +17,6 @@
 #include <fstream>
 #include <thread>
 #include <chrono>
-#include <map_loader.h>
 
 using namespace cv;
 using namespace std;
@@ -119,11 +118,7 @@ bool translating=true;
 
 
 
-short robotMap [ 120 ][ 120 ]={0};
-short robotMap2 [ 120 ][ 120 ]={0};
-
-short robotMapWide [ 120 ][ 120 ]={0};
-
+short robotMap [ 120 ][ 120 ];
 
 
 double shortestX=1000000;
@@ -158,7 +153,6 @@ double x1=0;
 double x2=0;
 double y11=0;
 double y2=0;
-TMapArea mapArea;
 
 
 double pocetBuniekX=0;
@@ -182,6 +176,10 @@ bool showObstacleWarning=false;
 
 
 double incPer=0;
+
+bool centralSTOP=false;
+QImage mapImage;
+QImage camWindow;
 
 vector< tuple <double,double> > selectedPoints;
 
@@ -256,13 +254,6 @@ void MainWindow::localrobot(TKobukiData &robotdata)
 
     if(prvyStart)
     {
-        map_loader map;
-        const char *ask = "priestor.txt";
-        char *temp = NULL;
-        temp = (char *)ask;
-        map.load_map(temp,mapArea);
-//         cout<<mapArea.obstacle.back().points.front().point.x<<endl;
-
         angleOnStart=robotdata.GyroAngle;
         prevValEncLeft=robotdata.EncoderLeft;
         prevValEncRight=robotdata.EncoderRight;
@@ -271,210 +262,202 @@ void MainWindow::localrobot(TKobukiData &robotdata)
         prvyStart=false;
 
     }
-   //overflow of left wheel
-    is_overflow=robotdata.EncoderLeft-prevValEncLeft;
-    if(is_overflow<overflow_up){
-       tr_dist_of_LW= (tickToMeter*(robotdata.EncoderLeft-prevValEncLeft+65536));
-       cout <<  "upL" << endl;
-    }
-
-    else if(is_overflow>overflow_down){
-       tr_dist_of_LW= (tickToMeter*(robotdata.EncoderLeft-prevValEncLeft-65536));
-       cout <<  "downL" << endl;
-    }
-    else{
-        tr_dist_of_LW=(tickToMeter*(robotdata.EncoderLeft-prevValEncLeft));
-    }
-    prevValEncLeft=robotdata.EncoderLeft;
-
-
-   //overflow of right wheel
-    is_overflow=robotdata.EncoderRight-prevValEncRight;
-    if(is_overflow<overflow_up){
-       tr_dist_of_RW= (tickToMeter*(robotdata.EncoderRight-prevValEncRight+65536));
-       cout <<  "upR" << endl;
-    }
-
-    else if(is_overflow>overflow_down){
-       tr_dist_of_RW= (tickToMeter*(robotdata.EncoderRight-prevValEncRight-65536));
-       cout <<  "downR" << endl;
-    }
-    else{
-        tr_dist_of_RW=(tickToMeter*(robotdata.EncoderRight-prevValEncRight));
-    }
-    prevValEncRight=robotdata.EncoderRight;
-
-
-
-
-//    //calculation of traveled distance of both wheels from two last positions
-//    tr_dist_of_LW=countTraveledDistance(robotdata.EncoderLeft,dataEL,false);
-//    tr_dist_of_RW=countTraveledDistance(robotdata.EncoderRight,dataER,false);
-
-
-    tr_dist=(tr_dist_of_RW+tr_dist_of_LW)/2;
-    tr_dist_fr_lastP=tr_dist_fr_lastP+tr_dist;
-
-    //recalculation of gyroangle to be 0 when code start and then it will be counting from this angle(+X is in front of robot,+Y is on left of robot)
-    if(robotdata.GyroAngle-angleOnStart<-18000)
-    {
-        gyroAngle_180_180= robotdata.GyroAngle-angleOnStart+36000;
-    }
-    else if(robotdata.GyroAngle-angleOnStart>18000)
-    {
-        gyroAngle_180_180= robotdata.GyroAngle-angleOnStart-36000;
-    }
-    else
-    {
-        gyroAngle_180_180= robotdata.GyroAngle-angleOnStart;
-
-    }
-
-    //actual location of robot
-    robotX=robotX+(tr_dist*cos((gyroAngle_180_180/100.0)* PI / 180.0));
-    robotY=robotY+(tr_dist*sin((gyroAngle_180_180/100.0)* PI / 180.0));
-
-    //finding of recalculation of Gyroangle to angle from 0 to 360
-    if(gyroAngle_180_180<0){gyroAngle_0_360=gyroAngle_180_180+36000;}
-    else{gyroAngle_0_360=gyroAngle_180_180;}
-//    cout<<robotX*100.0<<"X "<<robotY*100.0<<" Y "<<sens.GyroAngle<<"angle"<<endl;
-
-
-
-
-if(requiredPosX.size()==0&&prevValGyro!=robotdata.GyroAngle){stop();
-cout<<"good"<<endl;}
-
-//cout<<requiredPosX.size()<<"   "<<endOfPositioning<<" "<<prekazka<< endl;
-
-if(requiredPosX.size()>0&&prekazka==false){
-cout<<requiredPosX.front()<<"   "<<requiredPosY.front()<<endl;
-    //if robot is in surrounding of current setpoints then set all parameters and set new required position
-    if(euclidDist(robotX,robotY,requiredPosX.front(),requiredPosY.front())  <  deadZoneToRequiredPos)
-    {
-        startX=robotX;
-        startY=robotY;
-        startOfTranslate=true;
-        startOfRotate=true;
-        tr_dist_fr_lastP=0;
-        requiredPosX.pop_front();
-        requiredPosY.pop_front();
-        if(selectedPoints.size()>0&&requiredPosX.empty()){
-            selectedPoints.pop_back();
-
+    if(!centralSTOP){
+       //overflow of left wheel
+        is_overflow=robotdata.EncoderLeft-prevValEncLeft;
+        if(is_overflow<overflow_up){
+           tr_dist_of_LW= (tickToMeter*(robotdata.EncoderLeft-prevValEncLeft+65536));
+           cout <<  "upL" << endl;
         }
 
-        if((requiredPosX.empty()||requiredPosY.empty())&&endOfPositioning==false)
+        else if(is_overflow>overflow_down){
+           tr_dist_of_LW= (tickToMeter*(robotdata.EncoderLeft-prevValEncLeft-65536));
+           cout <<  "downL" << endl;
+        }
+        else{
+            tr_dist_of_LW=(tickToMeter*(robotdata.EncoderLeft-prevValEncLeft));
+        }
+        prevValEncLeft=robotdata.EncoderLeft;
+
+
+       //overflow of right wheel
+        is_overflow=robotdata.EncoderRight-prevValEncRight;
+        if(is_overflow<overflow_up){
+           tr_dist_of_RW= (tickToMeter*(robotdata.EncoderRight-prevValEncRight+65536));
+           cout <<  "upR" << endl;
+        }
+
+        else if(is_overflow>overflow_down){
+           tr_dist_of_RW= (tickToMeter*(robotdata.EncoderRight-prevValEncRight-65536));
+           cout <<  "downR" << endl;
+        }
+        else{
+            tr_dist_of_RW=(tickToMeter*(robotdata.EncoderRight-prevValEncRight));
+        }
+        prevValEncRight=robotdata.EncoderRight;
+
+
+
+
+    //    //calculation of traveled distance of both wheels from two last positions
+
+        tr_dist=(tr_dist_of_RW+tr_dist_of_LW)/2;
+        tr_dist_fr_lastP=tr_dist_fr_lastP+tr_dist;
+
+        //recalculation of gyroangle to be 0 when code start and then it will be counting from this angle(+X is in front of robot,+Y is on left of robot)
+        if(robotdata.GyroAngle-angleOnStart<-18000)
         {
-            endOfPositioning=true;
-            cout<<"end Of Positioning"<<endl;
-            stop();
-            printt();
+            gyroAngle_180_180= robotdata.GyroAngle-angleOnStart+36000;
+        }
+        else if(robotdata.GyroAngle-angleOnStart>18000)
+        {
+            gyroAngle_180_180= robotdata.GyroAngle-angleOnStart-36000;
+        }
+        else
+        {
+            gyroAngle_180_180= robotdata.GyroAngle-angleOnStart;
 
         }
+
+        //actual location of robot
+        robotX=robotX+(tr_dist*cos((gyroAngle_180_180/100.0)* PI / 180.0));
+        robotY=robotY+(tr_dist*sin((gyroAngle_180_180/100.0)* PI / 180.0));
+
+        //finding of recalculation of Gyroangle to angle from 0 to 360
+        if(gyroAngle_180_180<0){gyroAngle_0_360=gyroAngle_180_180+36000;}
+        else{gyroAngle_0_360=gyroAngle_180_180;}
+    //    cout<<robotX*100.0<<"X "<<robotY*100.0<<" Y "<<sens.GyroAngle<<"angle"<<endl;
+
+
+    if(requiredPosX.size()>0&&prekazka==false){
+    cout<<requiredPosX.front()<<"   "<<requiredPosY.front()<<endl;
+        //if robot is in surrounding of current setpoints then set all parameters and set new required position
+        if(euclidDist(robotX,robotY,requiredPosX.front(),requiredPosY.front())  <  deadZoneToRequiredPos)
+        {
+            startX=robotX;
+            startY=robotY;
+            startOfTranslate=true;
+            startOfRotate=true;
+            tr_dist_fr_lastP=0;
+            requiredPosX.pop_front();
+            requiredPosY.pop_front();
+            if(selectedPoints.size()>0&&requiredPosX.empty()){
+                selectedPoints.pop_back();
+            }
+
+            if((requiredPosX.empty()||requiredPosY.empty())&&endOfPositioning==false)
+            {
+                endOfPositioning=true;
+                cout<<"end Of Positioning"<<endl;
+                stop();
+                printt();
+
+            }
+        }
+
+
+
+        if(endOfPositioning==false){
+         //Navigation
+            //if distance of robot from trajectory is more than , or if angle of robot from setpoint angle is more than, then recalculate setpoints
+            if(abs(distPointToLine(robotX,robotY,startX,startY,requiredPosX.front(),requiredPosY.front()))>deadZoneTranslate){tr_dist_fr_lastP=0;}
+            if(abs(setpointAngle-gyroAngle_180_180/100.0)>deadZone2Angle){tr_dist_fr_lastP=0;}
+
+
+            //finding setpoints for angle and distance to required position
+            if(tr_dist_fr_lastP==0)
+            {
+                setpointAngle=(atan2(requiredPosY.front() -robotY,requiredPosX.front()-robotX)*180.0/PI);
+
+                setpointLength=sqrt(pow(requiredPosY.front()-robotY,2)+pow(requiredPosX.front()-robotX,2));
+            }
+
+            if(setpointAngle<0)
+            {
+                setpointAngle_0_360= 360+setpointAngle;
+            }
+            else{setpointAngle_0_360=setpointAngle;}
+
+        //    cout<<setpointAngle<<endl;
+            //rotation speed control
+            if(abs(setpointAngle_0_360-gyroAngle_0_360/100.0)>deadZone1Angle)
+            {
+                cout<<setpointAngle_0_360<<" angle"<<gyroAngle_0_360<<endl;
+
+                cout<<abs(setpointAngle_0_360-gyroAngle_0_360/100.0)<<" fvevreve"<<endl;
+                rotating=true;
+                translating=false;
+
+        //cout<<setpointAngle_0_360<<"  "<<gyroAngle_0_360<<""<<endl;
+                //this is recalculation to make the robot rotate a shorter path
+                 if(gyroAngle_180_180/100-setpointAngle>-180.0&&gyroAngle_180_180/100-setpointAngle<0.0)
+                 {
+                     outputAngleAction = P_reg_Angle.calculate(setpointAngle, robotdata.GyroAngle/100.0);
+                 }
+                 else if(setpointAngle_0_360-gyroAngle_0_360/100.0<=180)
+                 {
+                     outputAngleAction = P_reg_Angle.calculate(setpointAngle_0_360, gyroAngle_0_360/100.0);
+                 }
+                 else if((setpointAngle_0_360-gyroAngle_0_360/100.0)>180)
+                 {
+                     outputAngleAction = P_reg_Angle.calculate(setpointAngle, robotdata.GyroAngle/100.0);
+                 }
+
+
+    //            when is start of rotate the output from P angle regulator is limited by ramp
+                if(startOfRotate==true)
+                {
+                    outputAngleAction=ramp(outputAngleAction,0.1,&startOfRotate);
+                    turn_around(outputAngleAction);
+                    cout<<outputAngleAction<<"rotationspeed1"<<endl;
+                }
+    //            else turning and deceleration is fully on P angle regulator
+                else
+                {
+                    turn_around(outputAngleAction);
+                    cout<<outputAngleAction<<"rotationspeed2"<<endl;
+                }
+            }
+
+
+            //translation speed control
+            if(abs(setpointAngle_0_360-gyroAngle_0_360/100.0)<=deadZone1Angle){
+
+
+        //        cout<<rotating<<endl;
+                //
+                outputLenAction = P_reg_Length.calculate(setpointLength, tr_dist_fr_lastP)*100.0;
+
+                //when is start of translation the output from P translate regulator is limited by ramp
+                if(startOfTranslate==true)
+                {
+                    outputLenAction=ramp(outputLenAction,10,&startOfTranslate);
+                    go(outputLenAction);
+    //                cout<<outputLenAction<<"speed1"<<endl;
+                }
+                //else translation and deceleration is fully on P translate regulator
+                else
+                {
+                    go(outputLenAction);
+    //                cout<<outputLenAction<<"speed2"<<endl;
+                }
+                rotating=false;
+                translating=true;
+
+            }
+        }
+
+    //    if(dl%5==0)
+    //    {
+    //        ///toto je skaredy kod. rozumne je to posielat do ui cez signal slot..
+    ////        emit uiValuesChanged(robotX,robotY,gyroAngle_0_360);
+
+    //    }
+    //    dl++;
     }
+    prevValGyro=robotdata.GyroAngle;
 
-
-
-    if(endOfPositioning==false){
-     //Navigation
-        //if distance of robot from trajectory is more than , or if angle of robot from setpoint angle is more than, then recalculate setpoints
-        if(abs(distPointToLine(robotX,robotY,startX,startY,requiredPosX.front(),requiredPosY.front()))>deadZoneTranslate){tr_dist_fr_lastP=0;}
-        if(abs(setpointAngle-gyroAngle_180_180/100.0)>deadZone2Angle){tr_dist_fr_lastP=0;}
-
-
-        //finding setpoints for angle and distance to required position
-        if(tr_dist_fr_lastP==0)
-        {
-            setpointAngle=(atan2(requiredPosY.front() -robotY,requiredPosX.front()-robotX)*180.0/PI);
-
-            setpointLength=sqrt(pow(requiredPosY.front()-robotY,2)+pow(requiredPosX.front()-robotX,2));
-        }
-
-        if(setpointAngle<0)
-        {
-            setpointAngle_0_360= 360+setpointAngle;
-        }
-        else{setpointAngle_0_360=setpointAngle;}
-
-    //    cout<<setpointAngle<<endl;
-        //rotation speed control
-        if(abs(setpointAngle_0_360-gyroAngle_0_360/100.0)>deadZone1Angle)
-        {
-            cout<<setpointAngle_0_360<<" angle"<<gyroAngle_0_360<<endl;
-
-            cout<<abs(setpointAngle_0_360-gyroAngle_0_360/100.0)<<" fvevreve"<<endl;
-            rotating=true;
-            translating=false;
-
-    //cout<<setpointAngle_0_360<<"  "<<gyroAngle_0_360<<""<<endl;
-          //this is to make the robot rotate a shorter path
-            if(setpointAngle_0_360-gyroAngle_0_360/100.0<=180)
-            {
-                outputAngleAction = P_reg_Angle.calculate(setpointAngle_0_360, gyroAngle_0_360/100.0);
-            }
-            else if((setpointAngle_0_360-gyroAngle_0_360/100.0)>180)
-            {
-                outputAngleAction = P_reg_Angle.calculate(setpointAngle, robotdata.GyroAngle/100.0);
-            }
-            if((setpointAngle-gyroAngle_0_360/100)<-180)
-            {
-                outputAngleAction = P_reg_Angle.calculate((setpointAngle), robotdata.GyroAngle/100.0);
-            }
-
-
-//            when is start of rotate the output from P angle regulator is limited by ramp
-            if(startOfRotate==true)
-            {
-                outputAngleAction=ramp(outputAngleAction,0.1,&startOfRotate);
-                turn_around(outputAngleAction);
-                cout<<outputAngleAction<<"rotationspeed1"<<endl;
-            }
-//            else turning and deceleration is fully on P angle regulator
-            else
-            {
-                turn_around(outputAngleAction);
-                cout<<outputAngleAction<<"rotationspeed2"<<endl;
-            }
-        }
-
-
-        //translation speed control
-        if(abs(setpointAngle_0_360-gyroAngle_0_360/100.0)<=deadZone1Angle){
-
-
-    //        cout<<rotating<<endl;
-            //
-            outputLenAction = P_reg_Length.calculate(setpointLength, tr_dist_fr_lastP)*100.0;
-
-            //when is start of translation the output from P translate regulator is limited by ramp
-            if(startOfTranslate==true)
-            {
-                outputLenAction=ramp(outputLenAction,10,&startOfTranslate);
-                go(outputLenAction);
-//                cout<<outputLenAction<<"speed1"<<endl;
-            }
-            //else translation and deceleration is fully on P translate regulator
-            else
-            {
-                go(outputLenAction);
-//                cout<<outputLenAction<<"speed2"<<endl;
-            }
-            rotating=false;
-            translating=true;
-
-        }
     }
-
-//    if(dl%5==0)
-//    {
-//        ///toto je skaredy kod. rozumne je to posielat do ui cez signal slot..
-////        emit uiValuesChanged(robotX,robotY,gyroAngle_0_360);
-
-//    }
-//    dl++;
-}
-prevValGyro=robotdata.GyroAngle;
 }
 
 double MainWindow::ramp(double speed,double inc,bool *start)
@@ -580,21 +563,9 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
         double yOfPoint=(dist*sin((360.0-laserData.Data[k].scanAngle+gyroAngle_0_360/100.0)*PI/180.0))+robotY;
         //insert points to map
         if(rotating==false&&dist<2.5){
-//          robotMap[(int)round(robotStartCellX)][(int)round(robotStartCellY)]=0;
-
             robotMap[(int)round((xOfPoint/0.1)+60.0)][(int)round((yOfPoint/0.1)+60.0)]=1;
-//          robotMap[(int)round((robotX*10.0)+60.0)][(int)round((robotY*10.0)+60.0)]=2;
-
             robotStartCellX=(robotX*10.0)+60.0;
-            robotStartCellY=(robotX*10.0)+60.0;
-
-           //wideing of obstacles
-            for(int i=-2;i<=2;i++){
-                for(int j=-2;j<=2;j++){
-                    robotMapWide[((int)round((xOfPoint/0.1)+60.0))+i][((int)round((yOfPoint/0.1)+60.0))+j]=1;
-                }
-            }
-
+            robotStartCellY=(robotX*10.0)+60.0;          
         }
 
 
@@ -662,22 +633,13 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
 
     }
 
-    if(prekazka==true&&mapping==false){
-        requiredPosX.operator=({});
-        requiredPosY.operator=({});
-
-        showObstacleWarning=navigate_to_selected_point((int)Xnavigate,(int)Ynavigate);
-        cout<<showObstacleWarning<<"prekazka"<<endl;
-        prekazka=false;
-        if(showObstacleWarning==false){
-            ui->Warning_Prekazka_text->setVisible(true);
-        }
-    }
-    if(prekazka==true&&mapping==true)
+    if(prekazka==true)
     {
+        ui->Warning_Prekazka_text->setText("V ceste je prekážka, naviguj na iné miesto");
         ui->Warning_Prekazka_text->setVisible(true);
+
     }
-    if(prekazka==false&&mapping==true&&!requiredPosX.empty()){
+    if(prekazka==false&&!requiredPosX.empty()){
         endOfPositioning=false;
     }
     if(prekazka==true&&selectedPoints.size()>0){
@@ -780,7 +742,7 @@ void MainWindow::autonomousrobot(TKobukiData &sens)
 // dopravne oneskorenie nema vplyv na data
 int MainWindow::autonomouslaser(LaserMeasurement &laserData)
 {
-    cout<<laserData.Data[0].scanDistance/1000.0<<"vtvrvr"<<endl;
+//    cout<<laserData.Data[0].scanDistance/1000.0<<"vtvrvr"<<endl;
 
 //    if(laserData.Data[0].scanDistance/1000.0<0.14)
 //    {
@@ -890,8 +852,11 @@ void MainWindow::paintEvent(QPaintEvent *event)
     painter.drawRect(rect);
     QRect mapp(20,120,700,500);
 
+    QRect camWindowRect(20,120,700,500);
+    camWindowRect=ui->camWindow->geometry();
 
-    if(updateCameraPicture==1 && showCamera==true)
+
+    if(updateCameraPicture==1)
     {
 
         for(int k=0;k<fusionPoints.size();k++)
@@ -913,42 +878,27 @@ void MainWindow::paintEvent(QPaintEvent *event)
             }
         imgIn= QImage((uchar*) robotPicture.data, robotPicture.cols, robotPicture.rows, robotPicture.step, QImage::Format_BGR888);
         imgIn.operator=(imgIn.scaled(rect.width(),rect.height(),Qt::KeepAspectRatio,Qt::TransformationMode()));
+
+        camWindow=QImage((uchar*) robotPicture.data, robotPicture.cols, robotPicture.rows, robotPicture.step, QImage::Format_BGR888);
+        camWindow.operator=(camWindow.scaled(camWindowRect.width(),camWindowRect.height(),Qt::KeepAspectRatio,Qt::TransformationMode()));
+
         updateCameraPicture=0;
 
-    }
-//    if(showCamera==true){
-
-    if(show_Map_or_Camera=="camera"){
-
-        painter.drawImage(rect.x()+(rect.width()-imgIn.width())/2,rect.y(),imgIn);
-        pero.setWidth(1);
-
-    }
-    if(show_Map_or_Camera!="camera")
-    {
-        fusionPoints.clear();
     }
 
     if(updateLaserPicture==1 )
     {
 
-        QImage Image(maxMapX-minMapX+1,maxMapY-minMapY+1, QImage::Format_ARGB32);
-        Image.fill(QColor(255,255,255,0));
+        mapImage=QImage(maxMapX-minMapX+1,maxMapY-minMapY+1, QImage::Format_ARGB32);
+        mapImage.fill(QColor(255,255,255,0));
 
         for(int k=minMapX;k<=maxMapX;k++)
         {
             for(int l=minMapY;l<=maxMapY;l++)
             {
                 if(robotMap[k][l]==1){
-                    Image.setPixelColor((int)(k-minMapX),(int)(l-minMapY),QColor(255,131,0,255));
+                    mapImage.setPixelColor((int)(k-minMapX),(int)(l-minMapY),QColor(255,131,0,255));
                 }
-                if(robotMap2[k][l]==-1){
-                    Image.setPixelColor((int)(k-minMapX),(int)(l-minMapY),QColor(255,0,0,255));
-                }
-                if(robotMap2[k][l]==2){
-                    Image.setPixelColor((int)(k-minMapX),(int)(l-minMapY),QColor(255,255,255,255));
-                }
-
             }
         }
         pocetBuniekX=maxMapX-minMapX;
@@ -965,77 +915,117 @@ void MainWindow::paintEvent(QPaintEvent *event)
         painter.setPen(pero);
         painter.setBrush(QColor(0,0,0,127));
 
-        Image=Image.mirrored(0,1);
-        if(show_Map_or_Camera=="camera"){
-            QRect mapBackground(10,10,ui->frame1->width()/2.5+10.0,ui->frame1->height()/2.5+10.0);
-            painter.drawRect(mapBackground);
-            painter.drawImage(20,20,Image.scaled(ui->frame1->width()/2.5,ui->frame1->height()/2.5,Qt::KeepAspectRatio,Qt::TransformationMode()));
-            Ypixels=ui->frame1->height()/2.5;
-            Xpixels=ui->frame1->width()/2.5;
-//            cout<<Ypixels<<" YP "<<Xpixels<<" XP "<<endl;
-//            cout<<pocetBuniekY<<" pocetBuniekY "<<pocetBuniekX<<" pocetBuniekX "<<endl;
-//            cout<<pocetBuniekY<<" pocetBuniekY "<<pocetBuniekX<<" pocetBuniekX "<<endl;
+        mapImage=mapImage.mirrored(0,1);
 
-            if((Xpixels/pocetBuniekX)<(Ypixels/pocetBuniekY)){
-                pomer=(double)(Xpixels/pocetBuniekX);
-//                cout<<"pomer x"<<pomer<<endl;
-                pomerY=(double)ui->frame1->height()/2.5-(pomer*pocetBuniekY);
+    }
 
-            }
-            else{
-                pomer=(double)(Ypixels/pocetBuniekY);
-//                cout<<"pomer y"<<pomer<<endl;
 
-            }
 
-            double posunY=((60.0+(robotY*10.0)-minMapY)*pomer)-10.0;
-            double posunX=(((robotX*10.0))*pomer)+((60.0-minMapX)*pomer);
-            painter.setBrush((Qt::white));
-            painter.drawEllipse(10+((60.0+(robotX*10.0)-minMapX)*pomer),  ui->frame1->height()/2.5-posunY-pomerY,3.0*pomer,3.0*pomer);
+
+    if(show_Map_or_Camera=="camera"){
+
+        painter.drawImage(rect.x()+(rect.width()-imgIn.width())/2,rect.y(),imgIn);
+        QRect mapBackground(10,10,ui->frame1->width()/2.5+20.0,ui->frame1->height()/2.5+20.0);
+        painter.drawRect(mapBackground);
+        painter.drawImage(20,20,mapImage.scaled(ui->frame1->width()/2.5,ui->frame1->height()/2.5,Qt::KeepAspectRatio,Qt::TransformationMode()));
+        Ypixels=ui->frame1->height()/2.5;
+        Xpixels=ui->frame1->width()/2.5;
+
+        if((Xpixels/pocetBuniekX)<(Ypixels/pocetBuniekY)){
+            pomer=(double)(Xpixels/pocetBuniekX);
+            pomerY=(double)ui->frame1->height()/2.5-(pomer*pocetBuniekY);
 
         }
-        if(show_Map_or_Camera=="map"){
-
-
-            painter.drawImage(80,80,Image.scaled(ui->frame1->width()-360,ui->frame1->height()-160,Qt::KeepAspectRatio,Qt::TransformationMode()));
-            Ypixels=ui->frame1->height()-160;
-            Xpixels=ui->frame1->width()-360;
-
-            if((Xpixels/pocetBuniekX)<(Ypixels/pocetBuniekY)){
-                pomer=(double)(Xpixels/pocetBuniekX);
-//                cout<<"pomer x"<<pomer<<endl;
-                pomerY=(double)ui->frame1->height()-160-(pomer*pocetBuniekY);
-
-            }
-            else{
-                pomer=(double)(Ypixels/pocetBuniekY);
-//                cout<<"pomer y"<<pomer<<endl;
-
-            }
-
-            double posunY=((60.0+(robotY*10.0)-minMapY)*pomer)+100.0;
-            double posunX=(((robotX*10.0))*pomer)+((60.0-minMapX)*pomer);
-            painter.setBrush((Qt::white));
-            painter.drawEllipse(((60.0+(robotX*10.0)-minMapX)*pomer)+70,  ui->frame1->height()-posunY-pomerY,3.0*pomer,3.0*pomer);
-
-
-
-//            if(selectedPoints.size()>0){
-//                for(int i=0;i<selectedPoints.size();i++){
-//                    painter.drawEllipse(get<0>(selectedPoints.at(i))*pomer,get<1>(selectedPoints.at(i))*pomer  ,10.0,10.0);
-//                }
-//            }
+        else{
+            pomer=(double)(Ypixels/pocetBuniekY);
         }
 
+        double posunY=((60.0+(robotY*10.0)-minMapY)*pomer)-10.0;
+        painter.setBrush((Qt::white));
+        painter.drawEllipse(((60.0+(robotX*10.0)-minMapX)*pomer)+20-1.5*pomer,  ui->frame1->height()/2.5-((60.0+(robotY*10.0)-minMapY)*pomer)+20-1.5*pomer-pomerY,3.0*pomer,3.0*pomer);
 
+        if(selectedPoints.size()>0){
+            pero.setStyle(Qt::SolidLine);
+            pero.setWidth(pomer/2);
+            pero.setColor(Qt::white);
+            painter.setPen(pero);
 
+            painter.drawLine(((60.0+(robotX*10.0)-minMapX)*pomer)+20, ui->frame1->height()/2.5-((60.0+(robotY*10.0)-minMapY)*pomer)+20-pomerY,((get<0>(selectedPoints.front())-minMapX)*pomer)+20 ,ui->frame1->height()/2.5-((get<1>(selectedPoints.front())-minMapY)*pomer)+20-pomerY);
 
+            pero.setStyle(Qt::SolidLine);
+            pero.setWidth(pomer/4);
+            painter.setPen(pero);
+            painter.setBrush((Qt::red));
+            painter.drawEllipse(((get<0>(selectedPoints.front())-minMapX)*pomer)+20-0.75*pomer ,ui->frame1->height()/2.5-((get<1>(selectedPoints.front())-minMapY)*pomer)+20-0.75*pomer-pomerY,1.5*pomer,1.5*pomer);
 
+        }
+        pero.setStyle(Qt::SolidLine);
+        pero.setWidth(pomer/4);
+        pero.setColor(Qt::black);
+        painter.setPen(pero);
+        int yyy=sin(gyroAngle_180_180/100*PI/180)*1.5*pomer;
+        int xxx=cos(gyroAngle_180_180/100*PI/180)*1.5*pomer;
+
+        painter.drawLine(((60.0+(robotX*10.0)-minMapX)*pomer)+20, ui->frame1->height()/2.5-((60.0+(robotY*10.0)-minMapY)*pomer)+20-pomerY, ((60.0+(robotX*10.0)-minMapX)*pomer)+20+xxx,ui->frame1->height()/2.5-((60.0+(robotY*10.0)-minMapY)*pomer)+20-pomerY-yyy);
 
 
 
 
     }
+
+    if(show_Map_or_Camera=="map")
+    {
+//        fusionPoints.clear();
+        painter.drawImage(80,80,mapImage.scaled(ui->frame1->width()-360,ui->frame1->height()-160,Qt::KeepAspectRatio,Qt::TransformationMode()));
+        Ypixels=ui->frame1->height()-160;
+        Xpixels=ui->frame1->width()-360;
+
+        if((Xpixels/pocetBuniekX)<(Ypixels/pocetBuniekY)){
+            pomer=(double)(Xpixels/pocetBuniekX);
+            pomerY=(double)ui->frame1->height()-160-(pomer*pocetBuniekY);
+
+        }
+        else{
+            pomer=(double)(Ypixels/pocetBuniekY);
+        }
+
+        double posunY=((60.0+(robotY*10.0)-minMapY)*pomer);
+        double posunX=(((robotX*10.0))*pomer)+((60.0-minMapX)*pomer);
+        painter.setBrush((Qt::white));
+        painter.drawEllipse(((60.0+(robotX*10.0)-minMapX)*pomer)+80-1.5*pomer,  ui->frame1->height()-((60.0+(robotY*10.0)-minMapY)*pomer)-80-1.5*pomer-pomerY,3.0*pomer,3.0*pomer);
+
+
+
+        if(selectedPoints.size()>0){
+            pero.setStyle(Qt::SolidLine);
+            pero.setWidth(pomer/2);
+            pero.setColor(Qt::white);
+            painter.setPen(pero);
+
+            painter.drawLine(((60.0+(robotX*10.0)-minMapX)*pomer)+80, ui->frame1->height()-((60.0+(robotY*10.0)-minMapY)*pomer)-80-pomerY,((get<0>(selectedPoints.front())-minMapX)*pomer)+80 ,ui->frame1->height()-((get<1>(selectedPoints.front())-minMapY)*pomer)-80-pomerY);
+
+            pero.setStyle(Qt::SolidLine);
+            pero.setWidth(pomer/4);
+            painter.setPen(pero);
+            painter.setBrush((Qt::red));
+            painter.drawEllipse(((get<0>(selectedPoints.front())-minMapX)*pomer)+80-0.75*pomer ,ui->frame1->height()-((get<1>(selectedPoints.front())-minMapY)*pomer)-80-0.75*pomer-pomerY,1.5*pomer,1.5*pomer);
+
+        }
+        pero.setStyle(Qt::SolidLine);
+        pero.setWidth(pomer/4);
+        pero.setColor(Qt::black);
+        painter.setPen(pero);
+        int yyy=sin(gyroAngle_180_180/100*PI/180)*1.5*pomer;
+        int xxx=cos(gyroAngle_180_180/100*PI/180)*1.5*pomer;
+        cout<<yyy<<"vervr"<<xxx<<endl;
+        painter.drawLine(((60.0+(robotX*10.0)-minMapX)*pomer)+80, ui->frame1->height()-((60.0+(robotY*10.0)-minMapY)*pomer)-80-pomerY, ((60.0+(robotX*10.0)-minMapX)*pomer)+80+xxx,ui->frame1->height()-((60.0+(robotY*10.0)-minMapY)*pomer)-80-pomerY-yyy);
+
+        painter.drawImage(camWindowRect.x()+(camWindowRect.width()-camWindow.width())/2,camWindowRect.y(),camWindow);
+
+    }
+
+
+
 
     if( showLidar==true)
     {
@@ -1127,7 +1117,6 @@ void MainWindow::paintEvent(QPaintEvent *event)
     painter.setBrush(Qt::black);
 
     painter.drawEllipse((robotShowsenzors.x()+robotShowsenzors.width())-(robotShowsenzors.width()/2)+3   ,(robotShowsenzors.y()+robotShowsenzors.height())-(robotShowsenzors.height()/2)-15,15,15);
-
 
 
 
@@ -1226,41 +1215,32 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
     if (event->button() == Qt::LeftButton&&show_Map_or_Camera=="map"&&lastPoint.x()<(ui->frame1->width()-220)){
 
-        if( ui->Warning_Prekazka_text->isVisible() )
+        if( ui->Warning_Prekazka_text->isVisible()&&centralSTOP==false)
         {
             ui->Warning_Prekazka_text->setText("V ceste je prekážka, naviguj na iné miesto");
             ui->Warning_Prekazka_text->setVisible(false);
             prekazka=false;
-            showObstacleWarning=false;
-            if(mapping==true){
-                requiredPosX.pop_front();
-                requiredPosY.pop_front();
-            }
-        }
-        else if(requiredPosX.empty()){
+            requiredPosX.pop_front();
+            requiredPosY.pop_front();
 
-            Xnavigate=((lastPoint.x()-70.0)/pomer)+minMapX;
+        }
+        else if(requiredPosX.empty()&&centralSTOP==false){
+
+            Xnavigate=((lastPoint.x()-80.0)/pomer)+minMapX;
             Ynavigate=maxMapY-((lastPoint.y()-80.0)/pomer);
-            cout<<Xnavigate<<"XNAV"<<Ynavigate<<"YNAV"<<endl;
 
-            if(mapping==true){
-                requiredPosX.push_back((Xnavigate-60.0)/10.0);
-                requiredPosY.push_back((Ynavigate-60.0)/10.0);
-            }
+            requiredPosX.push_back((Xnavigate-60.0)/10.0);
+            requiredPosY.push_back((Ynavigate-60.0)/10.0);
 
-//            cout<<lastPoint.x()<<" x "<<lastPoint.y()<<" y "<<X<<" X "<<Y<<" Y "<<minMapY<<"miny"<<maxMapY<<"maxY"<<endl;
-            selectedPoints.push_back(make_tuple((lastPoint.x()/pomer),((lastPoint.y())/pomer)));
-
-            if(mapping==false){
-                if(robotMapWide[(int)Xnavigate][(int)Ynavigate]!=1){
-                bool dobre=navigate_to_selected_point((int)Xnavigate,(int)Ynavigate);
-                }
-                else{
-                    ui->Warning_Prekazka_text->setText("Klikol si na prekážku, naviguj na iné miesto");
-                    ui->Warning_Prekazka_text->setVisible(true);
-                }
-            }
+            selectedPoints.push_back(make_tuple(Xnavigate,Ynavigate));
         }
+        else if(centralSTOP==true){
+            ui->Warning_Prekazka_text->setText("Ak chces navigovat, musis vypnut central STOP");
+            ui->Warning_Prekazka_text->setVisible(true);
+
+        }
+
+
     }
 }
 
@@ -1270,14 +1250,8 @@ void MainWindow::printt()
 {
 
 ofstream mapFile;
-ofstream mapFileWide;
 
 mapFile.open("example35.txt");
-mapFileWide.open("wideMap.txt");
-
-//if(mapFile)
-//{
-//cout<<"cannot file";}
 
     for (int i=120; i> 0;i--) //This variable is for each row below the x
     {
@@ -1285,213 +1259,34 @@ mapFileWide.open("wideMap.txt");
         {
             if(robotMap[j][i]==1){
                 mapFile << "*";
-                cout<<i<<"dddd"<<j<<endl
-;            }else{
                 mapFile << "-";
             }
-
-            if(robotMapWide[j][i]==1){
-                mapFileWide << " * ";
-            }else{
-                mapFileWide << "   ";
-            }
-
         }
         mapFile<<std::endl;
-        mapFileWide<<std::endl;
 
     }
     mapFile.close();
-    mapFileWide.close();
-
 }
 
 void MainWindow::on_pushButton_12_clicked()
 {
-
-//    navigate_to_selected_point(int Xbunka,int Ybunka);
-}
-
-
-
-
-bool MainWindow::navigate_to_selected_point(int Xcell,int Ycell)
-{
-    int XStart=(int)(robotX*10.0)+60.0;
-    int YStart=(int)(robotY*10.0)+60.0;
-
-    string direction="";
-    string previousDirection=" ";
-
-    int Xcandinate=0;
-    int Ycandinate=0;
-
-    int inc=0;
-    deque< tuple <int,int,int> > mapNav;
-    int robotMapWide_Navigate[120][120]={0};
-
-
-    std::copy(&robotMapWide[0][0], &robotMapWide[0][0]+120*120,&robotMapWide_Navigate[0][0]);
-
-    robotMapWide_Navigate[Xcell][Ycell]=2;
-
-    mapNav.push_back(make_tuple(Xcell+1,Ycell,3));
-    mapNav.push_back(make_tuple(Xcell-1,Ycell,3));
-    mapNav.push_back(make_tuple(Xcell,Ycell+1,3));
-    mapNav.push_back(make_tuple(Xcell,Ycell-1,3));
-
-
-   //Flood fill algorithm
-    do{
-        Xcandinate=get<0>(mapNav.front());
-        Ycandinate=get<1>(mapNav.front());
-
-        if (robotMapWide_Navigate[Xcandinate][Ycandinate]==0){
-           //Writing index to map if a candidate is 0
-            robotMapWide_Navigate[Xcandinate][Ycandinate]=get<2>(mapNav.front());
-
-           //adding neighbors with index as candidates
-            if(Xcandinate+1<=120    &&  Ycandinate<=120    &&  Ycandinate>=0){
-                mapNav.push_back(make_tuple(Xcandinate+1,Ycandinate,get<2>(mapNav.front())+1));
-            }
-            if(Xcandinate-1>0   &&  Ycandinate<=120    &&   Ycandinate>=0){
-                mapNav.push_back(make_tuple(Xcandinate-1,Ycandinate,get<2>(mapNav.front())+1));
-            }
-            if(Ycandinate+1<=120    &&  Xcandinate<=120    &&  Xcandinate>=0){
-                mapNav.push_back(make_tuple(Xcandinate,Ycandinate+1,get<2>(mapNav.front())+1));
-            }
-            if(Ycandinate-1>0   &&  Xcandinate<=120    &&   Xcandinate>=0){
-                mapNav.push_back(make_tuple(Xcandinate,Ycandinate-1,get<2>(mapNav.front())+1));
-            }
-
-        }
-        inc=get<2>(mapNav.front())+1;
-        mapNav.pop_front();
-
-
-    }while (!(Xcandinate==XStart&&Ycandinate==YStart)   &&  inc<120);
-
-
-    if(inc==120){return false;}
-
-
-
-    //find way from start to end
-    if(inc<120){
-        Xcandinate=XStart;
-        Ycandinate=YStart;
-        int Xcac=XStart;
-        int Ycac=YStart;
-        inc=inc-2;
-        do{
-
-            if(robotMapWide_Navigate[Xcandinate+1][Ycandinate]==inc){
-                Xcac=Xcandinate;
-                Ycac=Ycandinate;
-                Xcandinate=Xcandinate+1;
-                inc=inc-1;
-                direction="right";
-
-            }
-            else if(robotMapWide_Navigate[Xcandinate-1][Ycandinate]==inc){
-
-                Xcac=Xcandinate;
-                Ycac=Ycandinate;
-                Xcandinate=Xcandinate-1;
-                inc=inc-1;
-                direction="left";
-
-            }
-            else if(robotMapWide_Navigate[Xcandinate][Ycandinate+1]==inc){
-                Xcac=Xcandinate;
-                Ycac=Ycandinate;
-
-                Ycandinate=Ycandinate+1;
-                inc=inc-1;
-                direction="up";
-
-            }
-            else if(robotMapWide_Navigate[Xcandinate][Ycandinate-1]==inc){
-                Xcac=Xcandinate;
-                Ycac=Ycandinate;
-
-                Ycandinate=Ycandinate-1;
-
-                inc=inc-1;
-                direction="down";
-
-            }
-
-            if (previousDirection!=direction){
-
-                previousDirection=direction;
-                robotMapWide_Navigate[Xcac][Ycac]=-3;
-                requiredPosX.push_back((double)((Xcac-60.0)/10.0));
-                requiredPosY.push_back(double((Ycac-60.0)/10.0));
-            }
-            else if(robotMapWide_Navigate[Xcac][Ycac]!=-2){robotMapWide_Navigate[Xcac][Ycac]=-1;}
-
-
-        }while (!(inc==1));
-
-        robotMapWide_Navigate[XStart][YStart]=-2;
-        requiredPosX.push_back((Xcell-60.0)/10.0);
-        requiredPosY.push_back((Ycell-60.0)/10.0);
-        requiredPosX.pop_front();
-        requiredPosY.pop_front();
-        endOfPositioning=false;
-
-
-        std::copy(&robotMap[0][0], &robotMap[0][0]+120*120,&robotMap2[0][0]);
-        ofstream mapFile;
-        mapFile.open("indexes.txt");
-
-        if(mapFile){
-        cout<<"cannot file";}
-
-            for (int i=120; i> 0;i--) //This variable is for each row below the x
-            {
-                for (int j=0; j<120;j++)
-                {
-                    if(robotMapWide_Navigate[i][j]==-1||robotMapWide_Navigate[i][j]==-3)
-                    {
-                        robotMap2[i][j]=-1;
-                    }
-                    if(robotMapWide_Navigate[i][j]==2)
-                    {
-                        robotMap2[i][j]=2;
-                    }
-                    if(robotMapWide_Navigate[j][i]==0){
-                        mapFile << "    ";
-                    }
-                    else if(robotMapWide_Navigate[j][i]<10&&robotMapWide_Navigate[j][i]>0){
-                        mapFile << " "<<robotMapWide_Navigate[j][i]<<"  ";
-                    }
-                    else{
-                        mapFile << " "<<robotMapWide_Navigate[j][i]<<" ";
-
-                    }
-    //                if(i==70&&j==67){ mapFilee << " 99 ";}
-
-                }
-                mapFile<<std::endl;
-
-            }
-            mapFile.close();
-
-
-        return true;
+    if(!centralSTOP){
+        ui->pushButton_12->setStyleSheet("color: #FFF; background-color: #f54242; border: 2px solid #f54242; border-radius: 2px;");
+        requiredPosX.clear();
+        requiredPosY.clear();
+        selectedPoints.clear();
+        endOfPositioning=true;
+        stop();
+        centralSTOP=true;
     }
+    else{
+        ui->pushButton_12->setStyleSheet("color: #f54242; background-color: #FFF; border: 2px solid #f54242; border-radius: 2px;");
+        centralSTOP=false;
+        ui->Warning_Prekazka_text->setVisible(false);
 
 
-
-
-
+    }
 }
-
-
-
-
 
 
 
@@ -1505,9 +1300,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     ui->Warning_Prekazka_text->setVisible(false);
-//    ui->->setVisible(false);
 
-//    ui->map->setMouseTracking(true);
     connect(this,SIGNAL(uiValuesChanged(QString)),this,SLOT(setUiValues(QString)));
 
 
@@ -2154,22 +1947,7 @@ void MainWindow::on_checkBox_clicked(bool checked)
 }
 
 
-void MainWindow::on_Mapping_clicked(bool checked)
-{
-    if(checked){
-       mapping=true;
-       ui->Mapping->setStyleSheet("color: black; background-color: white; border-style: outset; border-width: 1px; border-color: beige");
-       ui->showMap->animateClick();
 
-    }
-    if(!checked){
-       mapping=false;
-       ui->Mapping->setStyleSheet("color: white; background-color: rgba(0, 0, 0, 0.7); border-style: outset; border-width: 1px; border-color: beige");
-
-    }
-    show_Map_or_Camera="map";
-
-}
 void MainWindow::imageViewer()
 {
     cv::VideoCapture cap;

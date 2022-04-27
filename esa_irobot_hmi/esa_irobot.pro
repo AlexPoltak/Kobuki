@@ -76,13 +76,11 @@ LIBS += -lWinmm
 }
 SOURCES += main.cpp\
         mainwindow.cpp \
-    map_loader.cpp \
     regulator.cpp \
     rplidar.cpp \
     CKobuki.cpp
 
 HEADERS  += mainwindow.h \
-    map_loader.h \
     regulator.h \
     rplidar.h \
     CKobuki.h
