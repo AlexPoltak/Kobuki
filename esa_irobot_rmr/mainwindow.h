@@ -33,8 +33,23 @@
 #include "rplidar.h"
 #include <QThread>
 #include <QKeyEvent>
+#include <iostream>
+#include <QCoreApplication>
+#include <QtConcurrent/QtConcurrent>
+#include <deque>
+#include <fstream>
+#include <thread>
+#include <chrono>
+#include "QTimer"
+#include <map_loader.h>
+#include "ui_mainwindow.h"
+#include "QPainter"
 #include "regulator.h"
 #include <tuple>
+#include "math.h"
+#include <QDoubleValidator>
+
+
 #define ROBOT_VPRED 0x01
 #define ROBOT_VZAD 0x02
 #define ROBOT_VLAVO 0x04
@@ -191,7 +206,6 @@ public:
     double robotFi;
     int globalcommand;
 
-
     int EncMax=65536;
     double PolohaX;
     double PolohaY;
@@ -306,36 +320,10 @@ public:
     skeleton kostricka;
 private slots:
 
-//    void on_pushButton_3_clicked();
 
-//    void on_pushButton_7_clicked();
-
-//    void on_pushButton_5_clicked();
-
-//    void on_pushButton_4_clicked();
-
-//    void on_pushButton_6_clicked();
-
-//    void on_pushButton_clicked();
-  //  void robotexec();
-
-//    void on_pushButton_8_clicked();
-
-//    void on_pushButton_10_clicked();
-
-//    void on_pushButton_11_clicked();
-
-//    void on_pushButton_9_clicked();
 
     void on_pushButton_12_clicked();
     bool navigate_to_selected_point(int Xbunka,int Ybunka);
-
-//    void on_pushButton_13_clicked();
-
-//    void on_checkBox_2_clicked(bool checked);
-
-//    void on_checkBox_3_clicked(bool checked);
-
 
     void on_checkBox_clicked(bool checked);
 
@@ -362,26 +350,35 @@ private:
     void keyPressEvent(QKeyEvent* event);
 
 
-    float distPointToLine(float point_x, float point_y, float line_x1, float line_y1, float line_x2, float line_y2);
+    float distFromPointToLine(float point_x, float point_y, float line_x1, float line_y1, float line_x2, float line_y2);
     double ramp(double speed,double inc,bool *start);
     double euclidDist(double x1,double y1,double x2,double y2);
     bool inRange(double low, double high, double x);
     void go(double speed);
     void turn_around(double angular_velocity);
     void stop();
-    void printt();
-    cv::Point2f SearchSubMatrix (int **matrixA ,int **matrixB);
-
+    void printMapToFile();
+    /**
+        Zmena uloh.
+        MODE=2.  Uloha2;
+        MODE=3.  Uloha3;
+        MODE=4.  Uloha4;
+    */
+    short MODE=2;
 
 protected:
-    void mousePressEvent(QMouseEvent *event) override;
+//    void mousePressEvent(QMouseEvent *event) override;
 
 
 
 public slots:
      void setUiValues(QString instruction);
+     void setUiValuesR(double robotX,double robotY);
+
 signals:
      void uiValuesChanged(QString newInstruction); ///toto nema telo
+     void uiValuesChangedR(double newrobotX,double newrobotY); ///toto nema telo
+
 
 };
 

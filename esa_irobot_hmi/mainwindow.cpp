@@ -1284,9 +1284,10 @@ mapFileWide.open("wideMap.txt");
         for (int j=0; j<120;j++)
         {
             if(robotMap[j][i]==1){
-                mapFile << " * ";
-            }else{
-                mapFile << "   ";
+                mapFile << "*";
+                cout<<i<<"dddd"<<j<<endl
+;            }else{
+                mapFile << "-";
             }
 
             if(robotMapWide[j][i]==1){

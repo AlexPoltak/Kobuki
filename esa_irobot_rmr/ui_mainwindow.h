@@ -40,13 +40,16 @@ public:
     QVBoxLayout *verticalLayout;
     QHBoxLayout *horizontalLayout_2;
     QLabel *label_2;
-    QLineEdit *lineEdit_2;
+    QLineEdit *lineEdit_Y;
     QHBoxLayout *horizontalLayout;
     QLabel *label;
-    QLineEdit *lineEdit;
+    QLineEdit *lineEdit_X;
     QHBoxLayout *horizontalLayout_3;
+    QLabel *X_robot;
+    QLineEdit *Xrobot;
+    QHBoxLayout *horizontalLayout_9;
     QLabel *label_3;
-    QLineEdit *lineEdit_3;
+    QLineEdit *Yrobot;
     QPushButton *pushButton_12;
     QCheckBox *Mapping;
     QCheckBox *checkBox_skeleton;
@@ -130,11 +133,12 @@ public:
 
         horizontalLayout_2->addWidget(label_2);
 
-        lineEdit_2 = new QLineEdit(verticalGroupBox);
-        lineEdit_2->setObjectName(QString::fromUtf8("lineEdit_2"));
-        lineEdit_2->setReadOnly(true);
+        lineEdit_Y = new QLineEdit(verticalGroupBox);
+        lineEdit_Y->setObjectName(QString::fromUtf8("lineEdit_Y"));
+        lineEdit_Y->setStyleSheet(QString::fromUtf8("color:white;"));
+        lineEdit_Y->setReadOnly(false);
 
-        horizontalLayout_2->addWidget(lineEdit_2);
+        horizontalLayout_2->addWidget(lineEdit_Y);
 
 
         verticalLayout->addLayout(horizontalLayout_2);
@@ -148,11 +152,12 @@ public:
 
         horizontalLayout->addWidget(label);
 
-        lineEdit = new QLineEdit(verticalGroupBox);
-        lineEdit->setObjectName(QString::fromUtf8("lineEdit"));
-        lineEdit->setReadOnly(true);
+        lineEdit_X = new QLineEdit(verticalGroupBox);
+        lineEdit_X->setObjectName(QString::fromUtf8("lineEdit_X"));
+        lineEdit_X->setStyleSheet(QString::fromUtf8("color:white;"));
+        lineEdit_X->setReadOnly(false);
 
-        horizontalLayout->addWidget(lineEdit);
+        horizontalLayout->addWidget(lineEdit_X);
 
 
         verticalLayout->addLayout(horizontalLayout);
@@ -160,20 +165,46 @@ public:
         horizontalLayout_3 = new QHBoxLayout();
         horizontalLayout_3->setSpacing(6);
         horizontalLayout_3->setObjectName(QString::fromUtf8("horizontalLayout_3"));
-        label_3 = new QLabel(verticalGroupBox);
-        label_3->setObjectName(QString::fromUtf8("label_3"));
-        label_3->setStyleSheet(QString::fromUtf8("color:white;"));
+        X_robot = new QLabel(verticalGroupBox);
+        X_robot->setObjectName(QString::fromUtf8("X_robot"));
+        X_robot->setMaximumSize(QSize(15, 16777215));
+        X_robot->setStyleSheet(QString::fromUtf8("color:white;"));
 
-        horizontalLayout_3->addWidget(label_3);
+        horizontalLayout_3->addWidget(X_robot);
 
-        lineEdit_3 = new QLineEdit(verticalGroupBox);
-        lineEdit_3->setObjectName(QString::fromUtf8("lineEdit_3"));
-        lineEdit_3->setReadOnly(true);
+        Xrobot = new QLineEdit(verticalGroupBox);
+        Xrobot->setObjectName(QString::fromUtf8("Xrobot"));
+        Xrobot->setStyleSheet(QString::fromUtf8("color:white;"));
+        Xrobot->setReadOnly(true);
 
-        horizontalLayout_3->addWidget(lineEdit_3);
+        horizontalLayout_3->addWidget(Xrobot);
 
 
         verticalLayout->addLayout(horizontalLayout_3);
+
+        horizontalLayout_9 = new QHBoxLayout();
+        horizontalLayout_9->setSpacing(6);
+        horizontalLayout_9->setObjectName(QString::fromUtf8("horizontalLayout_9"));
+        label_3 = new QLabel(verticalGroupBox);
+        label_3->setObjectName(QString::fromUtf8("label_3"));
+        label_3->setMinimumSize(QSize(15, 0));
+        label_3->setMaximumSize(QSize(11, 16777215));
+        label_3->setStyleSheet(QString::fromUtf8("color:white;\n"
+""));
+
+        horizontalLayout_9->addWidget(label_3);
+
+        Yrobot = new QLineEdit(verticalGroupBox);
+        Yrobot->setObjectName(QString::fromUtf8("Yrobot"));
+        Yrobot->setMinimumSize(QSize(61, 0));
+        Yrobot->setMaximumSize(QSize(61, 16777215));
+        Yrobot->setStyleSheet(QString::fromUtf8("color:white;"));
+        Yrobot->setReadOnly(true);
+
+        horizontalLayout_9->addWidget(Yrobot);
+
+
+        verticalLayout->addLayout(horizontalLayout_9);
 
         pushButton_12 = new QPushButton(verticalGroupBox);
         pushButton_12->setObjectName(QString::fromUtf8("pushButton_12"));
@@ -278,7 +309,8 @@ public:
         Warning_Prekazka_text->setText(QCoreApplication::translate("MainWindow", "V ceste je prek\303\241\305\276ka, naviguj na in\303\251 miesto", nullptr));
         label_2->setText(QCoreApplication::translate("MainWindow", "Y:", nullptr));
         label->setText(QCoreApplication::translate("MainWindow", "X:", nullptr));
-        label_3->setText(QCoreApplication::translate("MainWindow", "Fi:", nullptr));
+        X_robot->setText(QCoreApplication::translate("MainWindow", "Xr", nullptr));
+        label_3->setText(QCoreApplication::translate("MainWindow", "Yr", nullptr));
         pushButton_12->setText(QCoreApplication::translate("MainWindow", "naviguj", nullptr));
         Mapping->setText(QCoreApplication::translate("MainWindow", "Mapping", nullptr));
         checkBox_skeleton->setText(QCoreApplication::translate("MainWindow", "skeleton", nullptr));
