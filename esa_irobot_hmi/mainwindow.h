@@ -177,6 +177,10 @@ typedef struct
     std::chrono::steady_clock::time_point timestamp;
     cv::Mat data;
 }CameraVector;
+
+
+
+
 namespace Ui {
 class MainWindow;
 }

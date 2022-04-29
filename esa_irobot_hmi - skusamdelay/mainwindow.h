@@ -35,8 +35,19 @@
 #include <QKeyEvent>
 #include "regulator.h"
 #include <tuple>
-#include <deque>
 
+
+#include "QTimer"
+#include "QPainter"
+#include "math.h"
+#include <iostream>
+#include <opencv2/core/core.hpp>
+#include <QCoreApplication>
+#include <QtConcurrent/QtConcurrent>
+#include <deque>
+#include <fstream>
+#include <thread>
+#include <chrono>
 #define ROBOT_VPRED 0x01
 #define ROBOT_VZAD 0x02
 #define ROBOT_VLAVO 0x04
@@ -183,46 +194,26 @@ typedef struct
 
 struct local
 {
-    std::deque<double> requiredPosX={};
-    std::deque<double> requiredPosY={};
+
     std::deque<double> checkRequiredPosX={};
     std::deque<double> checkRequiredPosY={};
+
+    std::deque<double> requiredPosX={};
+    std::deque<double> requiredPosY={};
     //tuple(X OF Points,Y of points,color of points,size of points)
     vector< tuple <double,double,string,double> > fusionPoints;
-    vector< tuple <double,double,string,double> > laserpoints;
-    vector< tuple <double,double,string,double> > mapPoints;
     double sensorDist[277];
-    double deadZone1Angle=0.5;
-    double deadZone2Angle=2;
-    double deadZoneTranslate=0.05;
-    double deadZoneToRequiredPos=0.04;
+
     int endOfPositioning=true;
-    bool startOfTranslate = true;
-    bool startOfRotate = true;
-    bool mapping=false;
     double tr_dist_of_RW=0;
     double tr_dist_of_LW=0;
     double tr_dist=0;
 
     //traveled distance from last point where was calculate setpoint
     long double tr_dist_fr_lastP=0;
-    double startX=0;
-    double startY=0;
 
     int is_overflow=0;
-    int is_overflowG=0;
 
-    long double tickToMeter = 0.000085292090497737556558; // [m/tick]
-
-    double setpointAngle=0;
-    double setpointAngle_0_360=0;
-    double setpointLength=0;
-
-    double outputAngleAction=0;
-    double outputLenAction=0;
-
-    PID P_reg_Length = PID(0.1, 3, -3, 12, 0, 0);
-    PID P_reg_Angle = PID(0.1, 3.14159, -3.14159, 0.2, 0, 0);
     double xObr;
     double yObr;
 
@@ -231,66 +222,27 @@ struct local
     double xPMax=0;
     double yPMin=100000000;
     double yPMax=0;
-
-
-
-
     double endOflist=0;
     int gyroAngle_0_360=0;
     signed short gyroAngle_180_180=0;
-
     signed short angleOnStart;
     unsigned short prevValEncLeft=0;
     unsigned short prevValEncRight=0;
     short prevValGyro=0;
-
     double fuziaY=6;
-
     double imageWidth=0;
-
     bool rotating=false;
     bool translating=true;
-
-
-
     short robotMap [ 120 ][ 120 ];
     short robotMap2 [ 120 ][ 120 ];
-
-
-    double shortestX=1000000;
-    double shortestY=1000000;
-    double shortest=1000000;
-
     int maxMapY=0;
-    int prevMaxY=0;
     int minMapY=10000000;
-
     int maxMapX=0;
-    int prevMaxX=0;
-
     int minMapX=10000000;
-
     bool prekazka=false;
-    double shortestWay;
-
     string show_Map_or_Camera="camera";
-    int AsizeX=0;
-    int AsizeY=0;
-    int BsizeX=0;
-    int BsizeY=0;
-
-
-
     double robotStartCellX=60;
     double robotStartCellY=60;
-    int u=0;
-
-    double x1=0;
-    double x2=0;
-    double y11=0;
-    double y2=0;
-
-
     double pocetBuniekX=0;
     double pocetBuniekY=0;
     double Ypixels=0;
@@ -298,15 +250,8 @@ struct local
     double Xpixels=0;
     int pomerY=0;
     double maxdist=0;
-
-
-
-
-
     double Xnavigate;
     double Ynavigate;
-
-
     bool showObstacleWarning=false;
     bool canGo=true;
     bool pointSelected=false;
@@ -323,11 +268,93 @@ struct local
     long double robotX;
     long double robotY;
     bool prvyStart=true;
+    bool stoped=false;
+
 };
 
 
 
+struct autonomous
+{
+    long double robotX;     //
+    long double robotY;     //
+    std::deque<double> requiredPosX={};             //
+    std::deque<double> requiredPosY={};              //
 
+
+
+
+    double deadZone1Angle=0.5;              //
+    double deadZone2Angle=2;                //
+    double deadZoneTranslate=0.05;              //
+    double deadZoneToRequiredPos=0.04;          //
+
+
+
+    int endOfPositioning=true;
+    bool startOfTranslate = true;               //
+    bool startOfRotate = true;                  //
+    bool mapping=false;
+    double tr_dist_of_RW=0;         //
+    double tr_dist_of_LW=0;         //
+    double tr_dist=0;
+
+    //traveled distance from last point where was calculate setpoint
+    long double tr_dist_fr_lastP=0;
+    double startX=0;                //
+    double startY=0;                //
+
+    int is_overflow=0;          //
+    int is_overflowG=0;
+
+
+    double setpointAngle=0;                 //
+    double setpointAngle_0_360=0;               //
+    double setpointLength=0;            //
+
+    double outputAngleAction=0;         //
+    double outputLenAction=0;       //
+
+    PID P_reg_Length = PID(0.1, 3, -3, 12, 0, 0);
+    PID P_reg_Angle = PID(0.1, 3.14159, -3.14159, 0.2, 0, 0);
+
+    int gyroAngle_0_360=0;                      //
+    signed short gyroAngle_180_180=0;           //
+
+    signed short angleOnStart;                  //
+    unsigned short prevValEncLeft=0;            //
+    unsigned short prevValEncRight=0;           //
+    short prevValGyro=0;                        //
+
+
+
+    bool rotating=false;
+    bool translating=true;
+
+
+    double shortestX=1000000;
+    double shortestY=1000000;
+    double shortest=1000000;
+
+
+
+    bool prekazka=false;            //
+    double shortestWay;
+
+
+    bool showObstacleWarning=false;
+    bool canGo=true;
+    bool pointSelected=false;
+    bool stoj=false;
+    bool dobre=true;
+    bool mozes=true;
+
+    double incPer=0;            //
+
+    bool centralSTOP=false;
+
+    bool stoped=false;          //
+};
 
 
 
@@ -361,8 +388,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    long double robotX;
-    long double robotY;
+
     double robotFi;
     int globalcommand;
 
@@ -382,6 +408,8 @@ public:
     double deltaVzdialenostR;
     bool prvyStart=true;
     double gyro;
+    long double tickToMeter = 0.000085292090497737556558; // [m/tick]
+
 
     std::string ipaddress;
     std::vector<RobotCommand> commandQuery;
@@ -438,6 +466,8 @@ public:
 
     int locallaser(LaserMeasurement &laserData);
     int autonomouslaser(LaserMeasurement &laserData);
+    bool pointInRectangle(cv::Point2f A, cv::Point2f B, cv::Point2f C, cv::Point2f D, cv::Point2f m );
+
 
     void paintThisLidar(LaserMeasurement &laserData);
     LaserMeasurement paintLaserData;

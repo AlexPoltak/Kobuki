@@ -1,183 +1,13 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "QTimer"
-#include "QPainter"
-#include "math.h"
-#include <iostream>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/core/utility.hpp"
-#include "opencv2/videoio.hpp"
-#include "opencv2/imgcodecs.hpp"
-#include <QCoreApplication>
-#include <QtConcurrent/QtConcurrent>
-#include <deque>
-#include <fstream>
-#include <thread>
-#include <chrono>
+
 
 using namespace cv;
 using namespace std;
-
-
-std::deque<double> requiredPosX={};
-std::deque<double> requiredPosY={};
-
-std::deque<double> checkRequiredPosX={};
-std::deque<double> checkRequiredPosY={};
-
-//tuple(X OF Points,Y of points,color of points,size of points)
-vector< tuple <double,double,string,double> > fusionPoints;
-vector< tuple <double,double,string,double> > laserpoints;
-vector< tuple <double,double,string,double> > mapPoints;
-
-double sensorDist[277];
-double did[277]={0};
-double did2[277]={0};
-
-
-
-double deadZone1Angle=0.5;
-double deadZone2Angle=2;
-double deadZoneTranslate=0.05;
-double deadZoneToRequiredPos=0.04;
-
-
-std::vector<int> dataER;
-std::vector<int> dataEL;
-std::vector<int> dataG;
-
-int endOfPositioning=true;
-bool startOfTranslate = true;
-bool startOfRotate = true;
-bool mapping=false;
-double tr_dist_of_RW=0;
-double tr_dist_of_LW=0;
-double tr_dist=0;
-
-//traveled distance from last point where was calculate setpoint
-long double tr_dist_fr_lastP=0;
-double startX=0;
-double startY=0;
-
-int is_overflow=0;
-int is_overflowG=0;
-
-long double tickToMeter = 0.000085292090497737556558; // [m/tick]
-
-double setpointAngle=0;
-double setpointAngle_0_360=0;
-double setpointLength=0;
-
-double outputAngleAction=0;
-double outputLenAction=0;
-
-PID P_reg_Length = PID(0.1, 3, -3, 12, 0, 0);
-PID P_reg_Angle = PID(0.1, 3.14159, -3.14159, 0.2, 0, 0);
-double xObr;
-double yObr;
-
-
-double xPMin=100000000;
-double xPMax=0;
-double yPMin=100000000;
-double yPMax=0;
-
-
-
-
-double endOflist=0;
-int gyroAngle_0_360=0;
-signed short gyroAngle_180_180=0;
-
-signed short angleOnStart;
-unsigned short prevValEncLeft=0;
-unsigned short prevValEncRight=0;
-short prevValGyro=0;
-
-
-double fuziaY=6;
-
-double imageWidth=0;
-
-bool rotating=false;
-bool translating=true;
-
-
-
-short robotMap [ 120 ][ 120 ];
-
-
-double shortestX=1000000;
-double shortestY=1000000;
-double shortest=1000000;
-
-int maxMapY=0;
-int prevMaxY=0;
-int minMapY=10000000;
-
-int maxMapX=0;
-int prevMaxX=0;
-
-int minMapX=10000000;
-
-bool prekazka=false;
-double shortestWay;
-
-string show_Map_or_Camera="camera";
-int AsizeX=0;
-int AsizeY=0;
-int BsizeX=0;
-int BsizeY=0;
-
-
-
-double robotStartCellX=60;
-double robotStartCellY=60;
-int u=0;
-
-double x1=0;
-double x2=0;
-double y11=0;
-double y2=0;
-
-
-double pocetBuniekX=0;
-double pocetBuniekY=0;
-double Ypixels=0;
-double pomer=0;
-double Xpixels=0;
-int pomerY=0;
-double maxdist=0;
-
-
-
-
-
-double Xnavigate;
-double Ynavigate;
-
-
-bool showObstacleWarning=false;
-bool canGo=true;
-bool pointSelected=false;
-bool stoj=false;
-bool dobre=true;
-bool mozes=false;
-double incPer=0;
-
-bool centralSTOP=false;
-QImage mapImage;
-QImage camWindow;
-
-vector< tuple <double,double> > selectedPoints;
-
-
-
 local local;
-bool stoped=false;
+
+autonomous autonomous;
+
 
 
 float MainWindow::distPointToLine(float point_x, float point_y, float line_x1, float line_y1, float line_x2, float line_y2)
@@ -249,11 +79,11 @@ void MainWindow::localrobot(TKobukiData &sens)
        //overflow of right wheel
         local.is_overflow=sens.EncoderRight-local.prevValEncRight;
         if(local.is_overflow<overflow_up){
-           local.tr_dist_of_RW= (local.tickToMeter*(sens.EncoderRight-local.prevValEncRight+65536));
+           local.tr_dist_of_RW= (tickToMeter*(sens.EncoderRight-local.prevValEncRight+65536));
            cout <<  "upR" << endl;
         }
 
-        else if(is_overflow>overflow_down){
+        else if(local.is_overflow>overflow_down){
            local.tr_dist_of_RW= (tickToMeter*(sens.EncoderRight-local.prevValEncRight-65536));
            cout <<  "downR" << endl;
         }
@@ -291,7 +121,7 @@ void MainWindow::localrobot(TKobukiData &sens)
 
 
 
-        cout<<local.robotX*100<<"gregerg"<<local.robotY*100<<endl;
+//        cout<<local.robotX*100<<"gregerg"<<local.robotY*100<<endl;
         //finding of recalculation of Gyroangle to angle from 0 to 360
         if(local.gyroAngle_180_180<0){local.gyroAngle_0_360=local.gyroAngle_180_180+36000;}
         else{local.gyroAngle_0_360=local.gyroAngle_180_180;}
@@ -301,83 +131,21 @@ void MainWindow::localrobot(TKobukiData &sens)
 
 
 
+        if(local.requiredPosX.size()>0&&local.prekazka==false){
+            //if robot is in surrounding of current setpoints then set all parameters and set new required position
+            if(euclidDist(local.robotX,local.robotY,local.requiredPosX.front(),local.requiredPosY.front())  <  autonomous.deadZoneToRequiredPos)
+            {
+                cout<<"2222222222222"<<endl;
+                local.requiredPosX.pop_front();
+                local.requiredPosY.pop_front();
+                local.checkRequiredPosX.clear();
+                local.checkRequiredPosY.clear();
 
-}
-
-double MainWindow::ramp(double speed,double inc,bool *start)
-{
-    if(*start==true){
-        double s=incPer;
-
-        if(speed>=0){
-            incPer=incPer+inc;
+            }
         }
-        else{incPer=incPer-inc;}
-
-        if(abs(s)>abs(speed))
-        {
-           incPer=0;
-           *start=false;
-           return speed;
-        }
-        return s;
-    }
-    else{
-        return false;
-    }
-
-}
-
-double MainWindow::euclidDist(double x1,double y1,double x2,double y2)
-{
-   return sqrt(pow((x2-x1),2)+pow((y2-y1),2));
-}
-
-Point2f vect2d(cv::Point2f p1, Point2f p2) {
-    Point2f temp;
-    temp.x=(p2.x - p1.x);
-    temp.y=(-1 * (p2.y - p1.y));
-    return temp;}
-
-bool pointInRectangle(Point2f A, Point2f B, Point2f C, Point2f D, Point2f m ) {
-    Point2f AB = vect2d(A, B);  float C1 = -1 * (AB.y*A.x + AB.x*A.y); float  D1 = (AB.y*m.x + AB.x*m.y) + C1;
-    Point2f AD = vect2d(A, D);  float C2 = -1 * (AD.y*A.x + AD.x*A.y); float D2 = (AD.y*m.x + AD.x*m.y) + C2;
-    Point2f BC = vect2d(B, C);  float C3 = -1 * (BC.y*B.x + BC.x*B.y); float D3 = (BC.y*m.x + BC.x*m.y) + C3;
-    Point2f CD = vect2d(C, D);  float C4 = -1 * (CD.y*C.x + CD.x*C.y); float D4 = (CD.y*m.x + CD.x*m.y) + C4;
-    return     0 >= D1 && 0 >= D4 && 0 <= D2 && 0 >= D3;}
-
-bool MainWindow::inRange(double low, double high, double x)
-{
-    if(low <= x && x <= high){return true;}
-    else {return false;}
-}
-
-void MainWindow::go(double speed)
-{
-    sendRobotCommand(ROBOT_VPRED,speed);
-
-}
-void MainWindow::turn_around(double angular_velocity)
-{
-    std::vector<unsigned char> mess=robot.setRotationSpeed(angular_velocity);
-    if (sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1)
-    {
-
-    }
-}
 
 
-void MainWindow::stop()
-{
-    sendRobotCommand(ROBOT_STOP);
-}
 
-
-void MainWindow::paintThisLidar(LaserMeasurement &laserData)
-{
-    memcpy( &paintLaserData,&laserData,sizeof(LaserMeasurement));
-    updateLaserPicture=1;
-    update();
 }
 
 // funkcia local laser je naspracovanie dat z lasera(zapnutie dopravneho oneskorenia sposobi opozdenie dat oproti aktualnemu stavu robota)
@@ -395,6 +163,14 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
 
     for(int k=0;k<laserData.numberOfScans;k++)
     {   
+        if(laserData.Data[k].scanDistance/1000.0<0.3&&laserData.Data[k].scanDistance/1000.0>0.0&&!local.pointSelected)
+        {
+            local.stoped=true;
+
+            cout<<"stopol som"<<endl;
+        }
+
+
 
         double dist=laserData.Data[k].scanDistance/1000.0;
 
@@ -412,7 +188,7 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
             local.robotStartCellX=(local.robotX*10.0)+60.0;
             local.robotStartCellY=(local.robotX*10.0)+60.0;
         }
-
+        cout<<local.checkRequiredPosX.size()<<"     "<<local.prekazka<<endl;
         if(!local.checkRequiredPosX.empty()&&local.prekazka==false){
             Point2f pt(xOfPoint, yOfPoint);
             Point2f midpoint(local.robotX+   ((local.checkRequiredPosX.front()-local.robotX)/2),local.robotY+    ((local.checkRequiredPosY.front()-local.robotY)/2));
@@ -430,11 +206,17 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
     }
 
 
-    if(stoped==true&&!local.checkRequiredPosX.empty()&&local.dobre){
+    if(local.pointSelected&&!local.prekazka){
+        autonomous.requiredPosX.push_back(local.checkRequiredPosX.front());
+        autonomous.requiredPosY.push_back(local.checkRequiredPosY.front());
+        local.endOfPositioning=false;
+        local.pointSelected=false;
+
+    }
+
+    if(local.stoped==true&&!local.checkRequiredPosX.empty()&&local.dobre){
         local.checkRequiredPosX.clear();
         local.checkRequiredPosY.clear();
-        local.requiredPosX.clear();
-        local.requiredPosY.clear();
         local.selectedPoints.clear();
         local.endOfPositioning=false;
         ui->Warning_Prekazka_text->setText("skoro som narazil");
@@ -443,16 +225,16 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
         local.mozes=true;
     }
 
-    if(!local.prekazka&&!local.checkRequiredPosX.empty()&&local.mozes){
+    if(!local.prekazka&&!local.checkRequiredPosX.empty()&&!local.pointSelected){
+        cout<<"ides"<<endl;
+        autonomous.requiredPosX.push_back(local.checkRequiredPosX.front());
+        autonomous.requiredPosY.push_back(local.checkRequiredPosY.front());
         local.requiredPosX.push_back(local.checkRequiredPosX.front());
         local.requiredPosY.push_back(local.checkRequiredPosY.front());
-        cout<<"ides"<<endl;
-        requiredPosX.push_back(local.checkRequiredPosX.front());
-        requiredPosY.push_back(local.checkRequiredPosY.front());
+
         local.endOfPositioning=false;
-        local.pointSelected=false;
-        local.mozes=false;
     }
+
 
 //    if(stoj==true&&!checkRequiredPosX.empty()&&euclidDist(robotX,robotY,checkRequiredPosX.front(),checkRequiredPosY.front())>0.3){dobre=true;stoj=false;}
 
@@ -461,28 +243,14 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
         ui->Warning_Prekazka_text->setText("V ceste je prekážka, naviguj na iné miesto");
         ui->Warning_Prekazka_text->setVisible(true);
         local.endOfPositioning=true;
-        local.requiredPosX.clear();
-        local.requiredPosY.clear();
         local.selectedPoints.clear();
         local.prekazka=false;
 
     }
 
-    if(local.prekazka==true&&local.selectedPoints.size()>0){
-        local.selectedPoints.pop_back();
+    if(local.requiredPosY.empty()&&local.selectedPoints.size()>0){
+        local.selectedPoints.clear();
     }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     for(int k=0;k<120;k++){
@@ -497,8 +265,7 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
     }
     if(dl%2==0)
     {
-        local.prevMaxY=maxMapY;
-        local.prevMaxX=maxMapX;
+
     }
     dl++;
 
@@ -546,6 +313,109 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
 }
 
 
+double MainWindow::ramp(double speed,double inc,bool *start)
+{
+    if(*start==true){
+        double s=autonomous.incPer;
+
+        if(speed>=0){
+            autonomous.incPer=autonomous.incPer+inc;
+        }
+        else{autonomous.incPer=autonomous.incPer-inc;}
+
+        if(abs(s)>abs(speed))
+        {
+           autonomous.incPer=0;
+           *start=false;
+           return speed;
+        }
+        return s;
+    }
+    else{
+        return false;
+    }
+
+}
+
+double MainWindow::euclidDist(double x1,double y1,double x2,double y2)
+{
+   return sqrt(pow((x2-x1),2)+pow((y2-y1),2));
+}
+
+Point2f vect2d(cv::Point2f p1, Point2f p2) {
+    Point2f temp;
+    temp.x=(p2.x - p1.x);
+    temp.y=(-1 * (p2.y - p1.y));
+    return temp;}
+
+bool MainWindow::pointInRectangle(Point2f A, Point2f B, Point2f C, Point2f D, Point2f m ) {
+    Point2f AB = vect2d(A, B);  float C1 = -1 * (AB.y*A.x + AB.x*A.y); float  D1 = (AB.y*m.x + AB.x*m.y) + C1;
+    Point2f AD = vect2d(A, D);  float C2 = -1 * (AD.y*A.x + AD.x*A.y); float D2 = (AD.y*m.x + AD.x*m.y) + C2;
+    Point2f BC = vect2d(B, C);  float C3 = -1 * (BC.y*B.x + BC.x*B.y); float D3 = (BC.y*m.x + BC.x*m.y) + C3;
+    Point2f CD = vect2d(C, D);  float C4 = -1 * (CD.y*C.x + CD.x*C.y); float D4 = (CD.y*m.x + CD.x*m.y) + C4;
+    return     0 >= D1 && 0 >= D4 && 0 <= D2 && 0 >= D3;}
+
+bool MainWindow::inRange(double low, double high, double x)
+{
+    if(low <= x && x <= high){return true;}
+    else {return false;}
+}
+
+void MainWindow::go(double speed)
+{
+    sendRobotCommand(ROBOT_VPRED,speed);
+
+}
+void MainWindow::turn_around(double angular_velocity)
+{
+    std::vector<unsigned char> mess=robot.setRotationSpeed(angular_velocity);
+    if (sendto(rob_s, (char*)mess.data(), sizeof(char)*mess.size(), 0, (struct sockaddr*) &rob_si_posli, rob_slen) == -1)
+    {
+
+    }
+}
+
+
+void MainWindow::stop()
+{
+    sendRobotCommand(ROBOT_STOP);
+}
+
+
+void MainWindow::paintThisLidar(LaserMeasurement &laserData)
+{
+    memcpy( &paintLaserData,&laserData,sizeof(LaserMeasurement));
+    updateLaserPicture=1;
+    update();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //--autonomousrobot simuluje slucku robota, ktora bezi priamo na robote
 // predstavte si to tak,ze ste naprogramovali napriklad polohovy regulator, uploadli ste ho do robota a tam sa to vykonava
 // dopravne oneskorenie nema vplyv na data
@@ -554,111 +424,106 @@ void MainWindow::autonomousrobot(TKobukiData &sens)
 
     if(prvyStart)
     {
-        angleOnStart=sens.GyroAngle;
-        prevValEncLeft=sens.EncoderLeft;
-        prevValEncRight=sens.EncoderRight;
-        prevValGyro=sens.GyroAngle;
+        autonomous.angleOnStart=sens.GyroAngle;
+        autonomous.prevValEncLeft=sens.EncoderLeft;
+        autonomous.prevValEncRight=sens.EncoderRight;
+//        autonomous.prevValGyro=sens.GyroAngle;
 
         prvyStart=false;
 
     }
-    if(!centralSTOP){
+    if(!autonomous.centralSTOP){
        //overflow of left wheel
-        is_overflow=sens.EncoderLeft-prevValEncLeft;
-        if(is_overflow<overflow_up){
-           tr_dist_of_LW= (tickToMeter*(sens.EncoderLeft-prevValEncLeft+65536));
+        autonomous.is_overflow=sens.EncoderLeft-autonomous.prevValEncLeft;
+        if(autonomous.is_overflow<overflow_up){
+           autonomous.tr_dist_of_LW= (tickToMeter*(sens.EncoderLeft-autonomous.prevValEncLeft+65536));
            cout <<  "upL" << endl;
         }
 
-        else if(is_overflow>overflow_down){
-           tr_dist_of_LW= (tickToMeter*(sens.EncoderLeft-prevValEncLeft-65536));
+        else if(autonomous.is_overflow>overflow_down){
+           autonomous.tr_dist_of_LW= (tickToMeter*(sens.EncoderLeft-autonomous.prevValEncLeft-65536));
            cout <<  "downL" << endl;
         }
         else{
-            tr_dist_of_LW=(tickToMeter*(sens.EncoderLeft-prevValEncLeft));
+            autonomous.tr_dist_of_LW=(tickToMeter*(sens.EncoderLeft-autonomous.prevValEncLeft));
         }
-        prevValEncLeft=sens.EncoderLeft;
+        autonomous.prevValEncLeft=sens.EncoderLeft;
 
 
        //overflow of right wheel
-        is_overflow=sens.EncoderRight-prevValEncRight;
-        if(is_overflow<overflow_up){
-           tr_dist_of_RW= (tickToMeter*(sens.EncoderRight-prevValEncRight+65536));
+        autonomous.is_overflow=sens.EncoderRight-autonomous.prevValEncRight;
+        if(autonomous.is_overflow<overflow_up){
+           autonomous.tr_dist_of_RW= (tickToMeter*(sens.EncoderRight-autonomous.prevValEncRight+65536));
            cout <<  "upR" << endl;
         }
 
-        else if(is_overflow>overflow_down){
-           tr_dist_of_RW= (tickToMeter*(sens.EncoderRight-prevValEncRight-65536));
+        else if(autonomous.is_overflow>overflow_down){
+           autonomous.tr_dist_of_RW= (tickToMeter*(sens.EncoderRight-autonomous.prevValEncRight-65536));
            cout <<  "downR" << endl;
         }
         else{
-            tr_dist_of_RW=(tickToMeter*(sens.EncoderRight-prevValEncRight));
+            autonomous.tr_dist_of_RW=(tickToMeter*(sens.EncoderRight-autonomous.prevValEncRight));
         }
-        prevValEncRight=sens.EncoderRight;
+        autonomous.prevValEncRight=sens.EncoderRight;
 
 
 
 
     //    //calculation of traveled distance of both wheels from two last positions
 
-        tr_dist=(tr_dist_of_RW+tr_dist_of_LW)/2;
-        tr_dist_fr_lastP=tr_dist_fr_lastP+tr_dist;
+        autonomous.tr_dist=(autonomous.tr_dist_of_RW+autonomous.tr_dist_of_LW)/2;
+        autonomous.tr_dist_fr_lastP=autonomous.tr_dist_fr_lastP+autonomous.tr_dist;
 
         //recalculation of gyroangle to be 0 when code start and then it will be counting from this angle(+X is in front of robot,+Y is on left of robot)
-        if(sens.GyroAngle-angleOnStart<-18000)
+        if(sens.GyroAngle-autonomous.angleOnStart<-18000)
         {
-            gyroAngle_180_180= sens.GyroAngle-angleOnStart+36000;
+            autonomous.gyroAngle_180_180= sens.GyroAngle-autonomous.angleOnStart+36000;
         }
-        else if(sens.GyroAngle-angleOnStart>18000)
+        else if(sens.GyroAngle-autonomous.angleOnStart>18000)
         {
-            gyroAngle_180_180= sens.GyroAngle-angleOnStart-36000;
+            autonomous.gyroAngle_180_180= sens.GyroAngle-autonomous.angleOnStart-36000;
         }
         else
         {
-            gyroAngle_180_180= sens.GyroAngle-angleOnStart;
+            autonomous.gyroAngle_180_180= sens.GyroAngle-autonomous.angleOnStart;
 
         }
 
         //actual location of robot
-        robotX=robotX+(tr_dist*cos((gyroAngle_180_180/100.0)* PI / 180.0));
-        robotY=robotY+(tr_dist*sin((gyroAngle_180_180/100.0)* PI / 180.0));
+        autonomous.robotX=autonomous.robotX+(autonomous.tr_dist*cos((autonomous.gyroAngle_180_180/100.0)* PI / 180.0));
+        autonomous.robotY=autonomous.robotY+(autonomous.tr_dist*sin((autonomous.gyroAngle_180_180/100.0)* PI / 180.0));
 
         //finding of recalculation of Gyroangle to angle from 0 to 360
-        if(gyroAngle_180_180<0){gyroAngle_0_360=gyroAngle_180_180+36000;}
-        else{gyroAngle_0_360=gyroAngle_180_180;}
+        if(autonomous.gyroAngle_180_180<0){autonomous.gyroAngle_0_360=autonomous.gyroAngle_180_180+36000;}
+        else{autonomous.gyroAngle_0_360=autonomous.gyroAngle_180_180;}
 
 
 
 
 
 
-    if(requiredPosX.size()>0&&prekazka==false&&!stoped){
+    if(autonomous.requiredPosX.size()>0&&autonomous.prekazka==false&&!autonomous.stoped){
         //if robot is in surrounding of current setpoints then set all parameters and set new required position
-        if(euclidDist(robotX,robotY,requiredPosX.front(),requiredPosY.front())  <  deadZoneToRequiredPos)
+        if(euclidDist(autonomous.robotX,autonomous.robotY,autonomous.requiredPosX.front(),autonomous.requiredPosY.front())  <  autonomous.deadZoneToRequiredPos)
         {
-            startX=robotX;
-            startY=robotY;
-            startOfTranslate=true;
-            startOfRotate=true;
-            tr_dist_fr_lastP=0;
-            requiredPosX.pop_front();
-            requiredPosY.pop_front();
-            checkRequiredPosX.clear();
-            checkRequiredPosY.clear();
+            autonomous.startX=autonomous.robotX;
+            autonomous.startY=autonomous.robotY;
+            autonomous.startOfTranslate=true;
+            autonomous.startOfRotate=true;
+            autonomous.tr_dist_fr_lastP=0;
+            autonomous.requiredPosX.pop_front();
+            autonomous.requiredPosY.pop_front();
+
             local.checkRequiredPosX.clear();
             local.checkRequiredPosY.clear();
 
-            dobre=true;
-            stoj=false;
+            autonomous.dobre=true;
+            autonomous.stoj=false;
 
-            if(selectedPoints.size()>0&&requiredPosX.empty()){
-                selectedPoints.pop_back();
-                pointSelected=false;
-            }
 
-            if((requiredPosX.empty()||requiredPosY.empty())&&endOfPositioning==false)
+            if((autonomous.requiredPosX.empty()||autonomous.requiredPosY.empty())&&autonomous.endOfPositioning==false)
             {
-                endOfPositioning=true;
+                autonomous.endOfPositioning=true;
                 cout<<"end Of Positioning"<<endl;
                 stop();
                 printt();
@@ -668,95 +533,95 @@ void MainWindow::autonomousrobot(TKobukiData &sens)
 
 
 
-        if(endOfPositioning==false){
+        if(autonomous.endOfPositioning==false){
          //Navigation
             //if distance of robot from trajectory is more than , or if angle of robot from setpoint angle is more than, then recalculate setpoints
-            if(abs(distPointToLine(robotX,robotY,startX,startY,requiredPosX.front(),requiredPosY.front()))>deadZoneTranslate){tr_dist_fr_lastP=0;}
-            if(abs(setpointAngle-gyroAngle_180_180/100.0)>deadZone2Angle){tr_dist_fr_lastP=0;}
+            if(abs(distPointToLine(autonomous.robotX,autonomous.robotY,autonomous.startX,autonomous.startY,autonomous.requiredPosX.front(),autonomous.requiredPosY.front()))>autonomous.deadZoneTranslate){autonomous.tr_dist_fr_lastP=0;}
+            if(abs(autonomous.setpointAngle-autonomous.gyroAngle_180_180/100.0)>autonomous.deadZone2Angle){autonomous.tr_dist_fr_lastP=0;}
 
 
             //finding setpoints for angle and distance to required position
-            if(tr_dist_fr_lastP==0)
+            if(autonomous.tr_dist_fr_lastP==0)
             {
-                setpointAngle=(atan2(requiredPosY.front() -robotY,requiredPosX.front()-robotX)*180.0/PI);
+                autonomous.setpointAngle=(atan2(autonomous.requiredPosY.front() -autonomous.robotY,autonomous.requiredPosX.front()-autonomous.robotX)*180.0/PI);
 
-                setpointLength=sqrt(pow(requiredPosY.front()-robotY,2)+pow(requiredPosX.front()-robotX,2));
+               autonomous. setpointLength=sqrt(pow(autonomous.requiredPosY.front()-autonomous.robotY,2)+pow(autonomous.requiredPosX.front()-autonomous.robotX,2));
             }
 
-            if(setpointAngle<0)
+            if(autonomous.setpointAngle<0)
             {
-                setpointAngle_0_360= 360+setpointAngle;
+                autonomous.setpointAngle_0_360= 360+autonomous.setpointAngle;
             }
-            else{setpointAngle_0_360=setpointAngle;}
+            else{autonomous.setpointAngle_0_360=autonomous.setpointAngle;}
 
             //rotation speed control
-            if(abs(setpointAngle_0_360-gyroAngle_0_360/100.0)>deadZone1Angle)
+            if(abs(autonomous.setpointAngle_0_360-autonomous.gyroAngle_0_360/100.0)>autonomous.deadZone1Angle)
             {
-                cout<<setpointAngle_0_360<<" angle"<<gyroAngle_0_360<<endl;
+//                cout<<autonomous.setpointAngle_0_360<<" angle"<<autonomous.gyroAngle_0_360<<endl;
 
-                rotating=true;
-                translating=false;
+                autonomous.rotating=true;
+                autonomous.translating=false;
 
                 //this is recalculation to make the robot rotate a shorter path
-                 if(gyroAngle_180_180/100-setpointAngle>-180.0&&gyroAngle_180_180/100-setpointAngle<0.0)
+                 if(autonomous.gyroAngle_180_180/100-autonomous.setpointAngle>-180.0&&autonomous.gyroAngle_180_180/100-autonomous.setpointAngle<0.0)
                  {
-                     outputAngleAction = P_reg_Angle.calculate(setpointAngle, sens.GyroAngle/100.0);
+                     autonomous.outputAngleAction = autonomous.P_reg_Angle.calculate(autonomous.setpointAngle, sens.GyroAngle/100.0);
                  }
-                 else if(setpointAngle_0_360-gyroAngle_0_360/100.0<=180)
+                 else if(autonomous.setpointAngle_0_360-autonomous.gyroAngle_0_360/100.0<=180)
                  {
-                     outputAngleAction = P_reg_Angle.calculate(setpointAngle_0_360, gyroAngle_0_360/100.0);
+                     autonomous.outputAngleAction = autonomous.P_reg_Angle.calculate(autonomous.setpointAngle_0_360, autonomous.gyroAngle_0_360/100.0);
                  }
-                 else if((setpointAngle_0_360-gyroAngle_0_360/100.0)>180)
+                 else if((autonomous.setpointAngle_0_360-autonomous.gyroAngle_0_360/100.0)>180)
                  {
-                     outputAngleAction = P_reg_Angle.calculate(setpointAngle, sens.GyroAngle/100.0);
+                     autonomous.outputAngleAction = autonomous.P_reg_Angle.calculate(autonomous.setpointAngle, sens.GyroAngle/100.0);
                  }
 
 
     //            when is start of rotate the output from P angle regulator is limited by ramp
-                if(startOfRotate==true)
+                if(autonomous.startOfRotate==true)
                 {
-                    outputAngleAction=ramp(outputAngleAction,0.1,&startOfRotate);
-                    turn_around(outputAngleAction);
-                    cout<<outputAngleAction<<"rotationspeed1"<<endl;
+                    autonomous.outputAngleAction=ramp(autonomous.outputAngleAction,0.1,&autonomous.startOfRotate);
+                    turn_around(autonomous.outputAngleAction);
+//                    cout<<autonomous.outputAngleAction<<"rotationspeed1"<<endl;
                 }
     //            else turning and deceleration is fully on P angle regulator
                 else
                 {
-                    turn_around(outputAngleAction);
-                    cout<<outputAngleAction<<"rotationspeed2"<<endl;
+                    turn_around(autonomous.outputAngleAction);
+//                    cout<<autonomous.outputAngleAction<<"rotationspeed2"<<endl;
                 }
             }
 
 
             //translation speed control
-            if(abs(setpointAngle_0_360-gyroAngle_0_360/100.0)<=deadZone1Angle){
+            if(abs(autonomous.setpointAngle_0_360-autonomous.gyroAngle_0_360/100.0)<=autonomous.deadZone1Angle){
 
 
         //        cout<<rotating<<endl;
                 //
-                outputLenAction = P_reg_Length.calculate(setpointLength, tr_dist_fr_lastP)*100.0;
+                autonomous.outputLenAction = autonomous.P_reg_Length.calculate(autonomous.setpointLength, autonomous.tr_dist_fr_lastP)*100.0;
 
                 //when is start of translation the output from P translate regulator is limited by ramp
-                if(startOfTranslate==true)
+                if(autonomous.startOfTranslate==true)
                 {
-                    outputLenAction=ramp(outputLenAction,10,&startOfTranslate);
-                    go(outputLenAction);
+                    autonomous.outputLenAction=ramp(autonomous.outputLenAction,10,&autonomous.startOfTranslate);
+                    go(autonomous.outputLenAction);
     //                cout<<outputLenAction<<"speed1"<<endl;
                 }
                 //else translation and deceleration is fully on P translate regulator
                 else
                 {
-                    go(outputLenAction);
+                    go(autonomous.outputLenAction);
     //                cout<<outputLenAction<<"speed2"<<endl;
                 }
-                rotating=false;
-                translating=true;
+                autonomous.rotating=false;
+                autonomous.translating=true;
 
             }
         }
 
     }
-    prevValGyro=sens.GyroAngle;
+//    prevValGyro=sens.GyroAngle;
 
     }
 
@@ -778,10 +643,13 @@ int MainWindow::autonomouslaser(LaserMeasurement &laserData)
 
     for(int k=0;k<laserData.numberOfScans;k++)
     {
-        if(laserData.Data[k].scanDistance/1000.0<0.3&&laserData.Data[k].scanDistance/1000.0>0.0)
+        if(laserData.Data[k].scanDistance/1000.0<0.3&&laserData.Data[k].scanDistance/1000.0>0.0&&autonomous.mozes)
         {
             sendRobotCommand(ROBOT_STOP);
-            stoped=true;
+            autonomous.requiredPosX.clear();
+            autonomous.requiredPosY.clear();
+            autonomous.stoped=true;
+            autonomous.mozes=false;
         }
     }
 
@@ -791,62 +659,51 @@ int MainWindow::autonomouslaser(LaserMeasurement &laserData)
 
         double dist=laserData.Data[k].scanDistance/1000.0;
 
-        sensorDist[k]=dist;
         if(dist<0.14)
             continue;
 
         //get laser global points
-        double xOfPoint=(dist*cos((360.0-laserData.Data[k].scanAngle+gyroAngle_0_360/100.0)*PI/180.0))+robotX;
-        double yOfPoint=(dist*sin((360.0-laserData.Data[k].scanAngle+gyroAngle_0_360/100.0)*PI/180.0))+robotY;
+        double xOfPoint=(dist*cos((360.0-laserData.Data[k].scanAngle+autonomous.gyroAngle_0_360/100.0)*PI/180.0))+autonomous.robotX;
+        double yOfPoint=(dist*sin((360.0-laserData.Data[k].scanAngle+autonomous.gyroAngle_0_360/100.0)*PI/180.0))+autonomous.robotY;
 
 
-        if(!requiredPosX.empty()&&prekazka==false){
+        if(!autonomous.requiredPosX.empty()&&autonomous.prekazka==false){
             Point2f pt(xOfPoint, yOfPoint);
-            Point2f midpoint(robotX+   ((requiredPosX.front()-robotX)/2),robotY+    ((requiredPosY.front()-robotY)/2));
-            RotatedRect rr1 ( midpoint,Size2f(euclidDist(robotX,robotY,requiredPosX.front(),requiredPosY.front()),0.4), atan2(requiredPosY.front() - robotY, requiredPosX.front() - robotX)*180/PI);
+            Point2f midpoint(autonomous.robotX+   ((autonomous.requiredPosX.front()-autonomous.robotX)/2),autonomous.robotY+    ((autonomous.requiredPosY.front()-autonomous.robotY)/2));
+            RotatedRect rr1 ( midpoint,Size2f(euclidDist(autonomous.robotX,autonomous.robotY,autonomous.requiredPosX.front(),autonomous.requiredPosY.front()),0.4), atan2(autonomous.requiredPosY.front() - autonomous.robotY, autonomous.requiredPosX.front() - autonomous.robotX)*180/PI);
             Point2f vtx[4];
 
             rr1.points(vtx);
             if(pointInRectangle(vtx[1],vtx[0],vtx[3],vtx[2],pt)&&abs(pt.x)>0&&abs(pt.y)>0){
-                prekazka=true;
+                autonomous.prekazka=true;
                 cout<<"prekazka"<<endl;
             }
 
         }
 
     }
-    cout<<requiredPosX.size()<<endl;
-//    if(stoped==true&&!checkRequiredPosX.empty()&&dobre){
-//        checkRequiredPosX.clear();
-//        checkRequiredPosY.clear();
-//        requiredPosX.clear();
-//        requiredPosY.clear();
-//        selectedPoints.clear();
-//        endOfPositioning=false;
-//        ui->Warning_Prekazka_text->setText("skoro som narazil");
-//        ui->Warning_Prekazka_text->setVisible(true);
-//        dobre=false;
-//        mozes=true;
-//    }
+    if(!autonomous.mozes&&autonomous.requiredPosX.size()>0&&!autonomous.prekazka){
+        autonomous.stoped=false;
+    }
 
-    if(!prekazka&&!requiredPosX.empty()){
+    if(!autonomous.prekazka&&!autonomous.requiredPosX.empty()){
 //        requiredPosX.push_back(checkRequiredPosX.front());
 //        requiredPosY.push_back(checkRequiredPosY.front());
-        endOfPositioning=false;
+        autonomous.endOfPositioning=false;
 //        pointSelected=false;
 //        mozes=false;
     }
 
 //    if(stoj==true&&!checkRequiredPosX.empty()&&euclidDist(robotX,robotY,checkRequiredPosX.front(),checkRequiredPosY.front())>0.3){dobre=true;stoj=false;}
 
-    if(prekazka==true)
+    if(autonomous.prekazka==true)
     {
         sendRobotCommand(ROBOT_STOP);
         ui->Warning_Prekazka_text->setText("V ceste je prekážka, naviguj na iné miesto");
         ui->Warning_Prekazka_text->setVisible(true);
-        requiredPosX.clear();
-        requiredPosY.clear();
-        prekazka=false;
+        autonomous.requiredPosX.clear();
+        autonomous.requiredPosY.clear();
+        autonomous.prekazka=false;
 
     }
 
@@ -982,7 +839,7 @@ void MainWindow::paintEvent(QPaintEvent *event)
         local.Xpixels=ui->frame1->width()/2.5;
 
         if((local.Xpixels/local.pocetBuniekX)<(local.Ypixels/local.pocetBuniekY)){
-            local.pomer=(double)(Xpixels/pocetBuniekX);
+            local.pomer=(double)(local.Xpixels/local.pocetBuniekX);
             local.pomerY=(double)ui->frame1->height()/2.5-(local.pomer*local.pocetBuniekY);
 
         }
@@ -1264,19 +1121,20 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
     if (event->button() == Qt::LeftButton&&local.show_Map_or_Camera=="map"&&lastPoint.x()<(ui->frame1->width()-220)){
 
-        if( ui->Warning_Prekazka_text->isVisible()&&centralSTOP==false)
+        if( ui->Warning_Prekazka_text->isVisible()&&autonomous.centralSTOP==false)
         {
             ui->Warning_Prekazka_text->setText("V ceste je prekážka, naviguj na iné miesto");
             ui->Warning_Prekazka_text->setVisible(false);
             local.prekazka=false;
 
-            if(!local.checkRequiredPosX.empty()){
                 local.checkRequiredPosX.clear();
                 local.checkRequiredPosY.clear();
-            }
+                local.requiredPosX.clear();
+                local.requiredPosY.clear();
+
 
         }
-        else if(local.checkRequiredPosX.empty()&&centralSTOP==false){
+        else if(local.checkRequiredPosX.empty()&&local.requiredPosX.empty()&&autonomous.centralSTOP==false){
 
             local.Xnavigate=((lastPoint.x()-80.0)/local.pomer)+local.minMapX;
             local.Ynavigate=local.maxMapY-((lastPoint.y()-80.0)/local.pomer);
@@ -1284,13 +1142,23 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             local.checkRequiredPosX.push_back((local.Xnavigate-60.0)/10.0);
             local.checkRequiredPosY.push_back((local.Ynavigate-60.0)/10.0);
             local.selectedPoints.push_back(make_tuple(local.Xnavigate,local.Ynavigate));
+            cout<<"goooooo2222o"<<endl;
+
+            if(local.stoped){
+                local.pointSelected=true;
+                local.stoped=false;
+                cout<<"gooooooo"<<endl;
+            }
             local.mozes=true;
         }
-        else if(centralSTOP==true){
+        else if(autonomous.centralSTOP==true){
             ui->Warning_Prekazka_text->setText("Ak chces navigovat, musis vypnut central STOP");
             ui->Warning_Prekazka_text->setVisible(true);
 
         }
+//        if(local.stoped){
+//            local.stoped=false;
+//        }
 
 
 
@@ -1323,19 +1191,24 @@ mapFile.open("example35.txt");
 
 void MainWindow::on_pushButton_12_clicked()
 {
-    if(!centralSTOP){
+    if(!autonomous.centralSTOP){
         ui->pushButton_12->setStyleSheet("color: #FFF; background-color: #f54242; border: 2px solid #f54242; border-radius: 2px;");
-        requiredPosX.clear();
-        requiredPosY.clear();
-        selectedPoints.clear();
-        endOfPositioning=true;
+        autonomous.requiredPosX.clear();
+        autonomous.requiredPosY.clear();
+        local.requiredPosX.clear();
+        local.requiredPosY.clear();
+        local.checkRequiredPosX.clear();
+        local.checkRequiredPosY.clear();
+        local.selectedPoints.clear();
+        autonomous.endOfPositioning=true;
         stop();
-        centralSTOP=true;
+        autonomous.centralSTOP=true;
     }
     else{
         ui->pushButton_12->setStyleSheet("color: #f54242; background-color: #FFF; border: 2px solid #f54242; border-radius: 2px;");
-        centralSTOP=false;
+        autonomous.centralSTOP=false;
         ui->Warning_Prekazka_text->setVisible(false);
+        autonomous.endOfPositioning=false;
 
 
     }
@@ -1359,8 +1232,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     local.robotX=0;
     local.robotY=0;
-    robotX=0;
-    robotY=0;
+    autonomous.robotX=0;
+    autonomous.robotY=0;
     robotFi=0;
 
     showCamera=true;
