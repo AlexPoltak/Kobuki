@@ -135,14 +135,15 @@ void MainWindow::localrobot(TKobukiData &sens)
             //if robot is in surrounding of current setpoints then set all parameters and set new required position
             if(euclidDist(local.robotX,local.robotY,local.requiredPosX.front(),local.requiredPosY.front())  <  autonomous.deadZoneToRequiredPos)
             {
-                cout<<"2222222222222"<<endl;
                 local.requiredPosX.pop_front();
                 local.requiredPosY.pop_front();
                 local.checkRequiredPosX.clear();
                 local.checkRequiredPosY.clear();
-
+                local.pointSelected=false;
             }
         }
+
+        local.prevValGyro=sens.GyroAngle;
 
 
 
@@ -163,11 +164,18 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
 
     for(int k=0;k<laserData.numberOfScans;k++)
     {   
-        if(laserData.Data[k].scanDistance/1000.0<0.3&&laserData.Data[k].scanDistance/1000.0>0.0&&!local.pointSelected)
+        if(laserData.Data[k].scanDistance/1000.0<0.3&&laserData.Data[k].scanDistance/1000.0>0.0&&!local.stoped&&!local.pointSelected)
         {
             local.stoped=true;
-
+            local.requiredPosX.clear();
+            local.requiredPosY.clear();
+            local.checkRequiredPosX.clear();
+            local.checkRequiredPosY.clear();
             cout<<"stopol som"<<endl;
+            ui->Warning_Prekazka_text->setText("skoro som narazil");
+            ui->Warning_Prekazka_text->setVisible(true);
+
+            local.pointSelected=true;
         }
 
 
@@ -181,14 +189,12 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
         //get laser global points
         double xOfPoint=(dist*cos((360.0-laserData.Data[k].scanAngle+local.gyroAngle_0_360/100.0)*PI/180.0))+local.robotX;
         double yOfPoint=(dist*sin((360.0-laserData.Data[k].scanAngle+local.gyroAngle_0_360/100.0)*PI/180.0))+local.robotY;
-
         //insert points to map
         if(local.rotating==false&&dist<2.5){
             local.robotMap[(int)round((xOfPoint/0.1)+60.0)][(int)round((yOfPoint/0.1)+60.0)]=1;
             local.robotStartCellX=(local.robotX*10.0)+60.0;
             local.robotStartCellY=(local.robotX*10.0)+60.0;
         }
-        cout<<local.checkRequiredPosX.size()<<"     "<<local.prekazka<<endl;
         if(!local.checkRequiredPosX.empty()&&local.prekazka==false){
             Point2f pt(xOfPoint, yOfPoint);
             Point2f midpoint(local.robotX+   ((local.checkRequiredPosX.front()-local.robotX)/2),local.robotY+    ((local.checkRequiredPosY.front()-local.robotY)/2));
@@ -206,32 +212,22 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
     }
 
 
-    if(local.pointSelected&&!local.prekazka){
+    if(!local.klik&&local.pointSelected&&!local.prekazka&&!local.checkRequiredPosX.empty()){
         autonomous.requiredPosX.push_back(local.checkRequiredPosX.front());
         autonomous.requiredPosY.push_back(local.checkRequiredPosY.front());
         local.endOfPositioning=false;
-        local.pointSelected=false;
-
+        local.stoped=false;
     }
 
-    if(local.stoped==true&&!local.checkRequiredPosX.empty()&&local.dobre){
-        local.checkRequiredPosX.clear();
-        local.checkRequiredPosY.clear();
-        local.selectedPoints.clear();
-        local.endOfPositioning=false;
-        ui->Warning_Prekazka_text->setText("skoro som narazil");
-        ui->Warning_Prekazka_text->setVisible(true);
-        local.dobre=false;
-        local.mozes=true;
-    }
 
-    if(!local.prekazka&&!local.checkRequiredPosX.empty()&&!local.pointSelected){
+    if(!local.prekazka&&!local.checkRequiredPosX.empty()&&!local.stoped&&!local.klik){
         cout<<"ides"<<endl;
         autonomous.requiredPosX.push_back(local.checkRequiredPosX.front());
         autonomous.requiredPosY.push_back(local.checkRequiredPosY.front());
         local.requiredPosX.push_back(local.checkRequiredPosX.front());
         local.requiredPosY.push_back(local.checkRequiredPosY.front());
-
+        local.checkRequiredPosX.clear();
+        local.checkRequiredPosY.clear();
         local.endOfPositioning=false;
     }
 
@@ -242,6 +238,10 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
     {
         ui->Warning_Prekazka_text->setText("V ceste je prekážka, naviguj na iné miesto");
         ui->Warning_Prekazka_text->setVisible(true);
+        local.requiredPosX.clear();
+        local.requiredPosY.clear();
+        local.checkRequiredPosX.clear();
+        local.checkRequiredPosY.clear();
         local.endOfPositioning=true;
         local.selectedPoints.clear();
         local.prekazka=false;
@@ -501,7 +501,6 @@ void MainWindow::autonomousrobot(TKobukiData &sens)
 
 
 
-
     if(autonomous.requiredPosX.size()>0&&autonomous.prekazka==false&&!autonomous.stoped){
         //if robot is in surrounding of current setpoints then set all parameters and set new required position
         if(euclidDist(autonomous.robotX,autonomous.robotY,autonomous.requiredPosX.front(),autonomous.requiredPosY.front())  <  autonomous.deadZoneToRequiredPos)
@@ -519,6 +518,7 @@ void MainWindow::autonomousrobot(TKobukiData &sens)
 
             autonomous.dobre=true;
             autonomous.stoj=false;
+            autonomous.mozes=true;
 
 
             if((autonomous.requiredPosX.empty()||autonomous.requiredPosY.empty())&&autonomous.endOfPositioning==false)
@@ -650,6 +650,8 @@ int MainWindow::autonomouslaser(LaserMeasurement &laserData)
             autonomous.requiredPosY.clear();
             autonomous.stoped=true;
             autonomous.mozes=false;
+            autonomous.endOfPositioning=true;
+
         }
     }
 
@@ -684,11 +686,11 @@ int MainWindow::autonomouslaser(LaserMeasurement &laserData)
     }
     if(!autonomous.mozes&&autonomous.requiredPosX.size()>0&&!autonomous.prekazka){
         autonomous.stoped=false;
+
     }
 
     if(!autonomous.prekazka&&!autonomous.requiredPosX.empty()){
-//        requiredPosX.push_back(checkRequiredPosX.front());
-//        requiredPosY.push_back(checkRequiredPosY.front());
+
         autonomous.endOfPositioning=false;
 //        pointSelected=false;
 //        mozes=false;
@@ -1131,10 +1133,11 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 local.checkRequiredPosY.clear();
                 local.requiredPosX.clear();
                 local.requiredPosY.clear();
-
+                local.klik=true;
 
         }
         else if(local.checkRequiredPosX.empty()&&local.requiredPosX.empty()&&autonomous.centralSTOP==false){
+            local.klik=false;
 
             local.Xnavigate=((lastPoint.x()-80.0)/local.pomer)+local.minMapX;
             local.Ynavigate=local.maxMapY-((lastPoint.y()-80.0)/local.pomer);
@@ -1142,13 +1145,6 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             local.checkRequiredPosX.push_back((local.Xnavigate-60.0)/10.0);
             local.checkRequiredPosY.push_back((local.Ynavigate-60.0)/10.0);
             local.selectedPoints.push_back(make_tuple(local.Xnavigate,local.Ynavigate));
-            cout<<"goooooo2222o"<<endl;
-
-            if(local.stoped){
-                local.pointSelected=true;
-                local.stoped=false;
-                cout<<"gooooooo"<<endl;
-            }
             local.mozes=true;
         }
         else if(autonomous.centralSTOP==true){

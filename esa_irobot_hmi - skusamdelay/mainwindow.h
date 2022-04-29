@@ -269,6 +269,7 @@ struct local
     long double robotY;
     bool prvyStart=true;
     bool stoped=false;
+    bool klik=false;
 
 };
 
