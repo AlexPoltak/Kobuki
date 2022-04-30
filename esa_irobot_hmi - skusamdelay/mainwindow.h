@@ -240,6 +240,8 @@ struct local
     int maxMapX=0;
     int minMapX=10000000;
     bool prekazka=false;
+    bool prekazka2=false;            //
+
     string show_Map_or_Camera="camera";
     double robotStartCellX=60;
     double robotStartCellY=60;
@@ -277,6 +279,7 @@ struct local
 
 struct autonomous
 {
+    bool firstFindingOfObstacle=false;
     long double robotX;     //
     long double robotY;     //
     std::deque<double> requiredPosX={};             //
@@ -514,8 +517,6 @@ private slots:
 
 
     void on_pushButton_12_clicked();
-
-    void on_checkBox_clicked(bool checked);
 
     void on_checkBox_skeleton_clicked(bool checked);
 
