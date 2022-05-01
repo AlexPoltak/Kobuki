@@ -11,7 +11,6 @@
 
 #include <QtCore/QVariant>
 #include <QtWidgets/QApplication>
-#include <QtWidgets/QCheckBox>
 #include <QtWidgets/QFrame>
 #include <QtWidgets/QGroupBox>
 #include <QtWidgets/QHBoxLayout>
@@ -51,13 +50,11 @@ public:
     QLabel *label_3;
     QLineEdit *Yrobot;
     QPushButton *pushButton_12;
-    QCheckBox *Mapping;
-    QCheckBox *checkBox_skeleton;
+    QPushButton *cancelWarning;
     QHBoxLayout *horizontalLayout_6;
     QPushButton *showMap;
     QPushButton *showCam;
     QWidget *widget;
-    QLabel *skeletonText;
     QFrame *robotShowSensors;
 
     void setupUi(QMainWindow *MainWindow)
@@ -213,24 +210,12 @@ public:
 
         verticalLayout->addWidget(pushButton_12);
 
-        Mapping = new QCheckBox(verticalGroupBox);
-        Mapping->setObjectName(QString::fromUtf8("Mapping"));
-        Mapping->setStyleSheet(QString::fromUtf8("color: white; \n"
-"background-color: rgba(0, 0, 0, 0.7);\n"
-" border-style: outset; border-width: 1px; \n"
-"border-color: beige"));
+        cancelWarning = new QPushButton(verticalGroupBox);
+        cancelWarning->setObjectName(QString::fromUtf8("cancelWarning"));
+        cancelWarning->setStyleSheet(QString::fromUtf8("background-color:white;\n"
+"color:black;"));
 
-        verticalLayout->addWidget(Mapping);
-
-        checkBox_skeleton = new QCheckBox(verticalGroupBox);
-        checkBox_skeleton->setObjectName(QString::fromUtf8("checkBox_skeleton"));
-        checkBox_skeleton->setStyleSheet(QString::fromUtf8("color: white; \n"
-"background-color: rgba(0, 0, 0, 0.7); \n"
-"border-style: outset; \n"
-"border-width: 1px; \n"
-"border-color: beige"));
-
-        verticalLayout->addWidget(checkBox_skeleton);
+        verticalLayout->addWidget(cancelWarning);
 
         horizontalLayout_6 = new QHBoxLayout();
         horizontalLayout_6->setSpacing(6);
@@ -265,18 +250,6 @@ public:
         widget->setObjectName(QString::fromUtf8("widget"));
         widget->setMinimumSize(QSize(200, 30));
         widget->setMaximumSize(QSize(220, 35));
-        skeletonText = new QLabel(widget);
-        skeletonText->setObjectName(QString::fromUtf8("skeletonText"));
-        skeletonText->setGeometry(QRect(0, 0, 200, 30));
-        skeletonText->setMinimumSize(QSize(200, 30));
-        skeletonText->setMaximumSize(QSize(200, 30));
-        skeletonText->setFont(font);
-        skeletonText->setLayoutDirection(Qt::LeftToRight);
-        skeletonText->setStyleSheet(QString::fromUtf8("color: #000;\n"
-"background-color: #FFF;\n"
-"border: 2px solid #000;\n"
-"border-radius: 2px;"));
-        skeletonText->setAlignment(Qt::AlignCenter);
 
         verticalLayout_4->addWidget(widget);
 
@@ -312,11 +285,9 @@ public:
         X_robot->setText(QCoreApplication::translate("MainWindow", "Xr", nullptr));
         label_3->setText(QCoreApplication::translate("MainWindow", "Yr", nullptr));
         pushButton_12->setText(QCoreApplication::translate("MainWindow", "naviguj", nullptr));
-        Mapping->setText(QCoreApplication::translate("MainWindow", "Mapping", nullptr));
-        checkBox_skeleton->setText(QCoreApplication::translate("MainWindow", "skeleton", nullptr));
+        cancelWarning->setText(QCoreApplication::translate("MainWindow", "Zru\305\241 warning", nullptr));
         showMap->setText(QCoreApplication::translate("MainWindow", "Map", nullptr));
         showCam->setText(QCoreApplication::translate("MainWindow", "Cam", nullptr));
-        skeletonText->setText(QCoreApplication::translate("MainWindow", "TextLabel", nullptr));
     } // retranslateUi
 
 };

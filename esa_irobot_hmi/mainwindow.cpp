@@ -764,7 +764,6 @@ int MainWindow::autonomouslaser(LaserMeasurement &laserData)
     {
         if(laserData.Data[k].scanDistance/1000.0<0.3&&laserData.Data[k].scanDistance/1000.0>0.0)
         {
-            if()
             sendRobotCommand(ROBOT_STOP);
             stoped=true;
         }

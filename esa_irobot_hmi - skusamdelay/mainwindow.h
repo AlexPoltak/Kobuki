@@ -211,6 +211,7 @@ struct local
 
     //traveled distance from last point where was calculate setpoint
     long double tr_dist_fr_lastP=0;
+    long double tr_dist_fr_lastP2=0;
 
     int is_overflow=0;
 
@@ -280,47 +281,49 @@ struct local
 struct autonomous
 {
     bool firstFindingOfObstacle=false;
-    long double robotX;     //
-    long double robotY;     //
-    std::deque<double> requiredPosX={};             //
-    std::deque<double> requiredPosY={};              //
+    long double robotX;
+    long double robotY;
+    std::deque<double> requiredPosX={};
+    std::deque<double> requiredPosY={};
 
 
 
 
-    double deadZone1Angle=0.5;              //
-    double deadZone2Angle=2;                //
-    double deadZoneTranslate=0.05;              //
-    double deadZoneToRequiredPos=0.04;          //
+    double deadZone1Angle=0.5;
+    double deadZone2Angle=2;
+    double deadZoneTranslate=0.05;
+    double deadZoneToRequiredPos=0.04;
 
 
 
     int endOfPositioning=true;
-    bool startOfTranslate = true;               //
-    bool startOfRotate = true;                  //
+    bool startOfTranslate = true;
+    bool startOfRotate = true;
     bool mapping=false;
-    double tr_dist_of_RW=0;         //
-    double tr_dist_of_LW=0;         //
+    double tr_dist_of_RW=0;
+    double tr_dist_of_LW=0;
     double tr_dist=0;
 
     //traveled distance from last point where was calculate setpoint
     long double tr_dist_fr_lastP=0;
-    double startX=0;                //
-    double startY=0;                //
+    long double tr_dist_fr_lastP2=0;
 
-    int is_overflow=0;          //
+    double startX=0;
+    double startY=0;
+
+    int is_overflow=0;
     int is_overflowG=0;
 
 
-    double setpointAngle=0;                 //
-    double setpointAngle_0_360=0;               //
-    double setpointLength=0;            //
+    double setpointAngle=0;
+    double setpointAngle_0_360=0;
+    double setpointLength=0;
 
-    double outputAngleAction=0;         //
-    double outputLenAction=0;       //
+    double outputAngleAction=0;
+    double outputLenAction=0;
 
-    PID P_reg_Length = PID(0.1, 3, -3, 12, 0, 0);
-    PID P_reg_Angle = PID(0.1, 3.14159, -3.14159, 0.2, 0, 0);
+    PID P_reg_Length = PID(0.1, 2.5, -2.5, 12, 0, 0);
+    PID P_reg_Angle = PID(0.1, 2.5, -2.5, 0.2, 0, 0);
 
     int gyroAngle_0_360=0;                      //
     signed short gyroAngle_180_180=0;           //

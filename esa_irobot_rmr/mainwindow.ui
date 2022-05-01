@@ -288,29 +288,13 @@ color:black;</string>
              </widget>
             </item>
             <item>
-             <widget class="QCheckBox" name="Mapping">
+             <widget class="QPushButton" name="cancelWarning">
               <property name="styleSheet">
-               <string notr="true">color: white; 
-background-color: rgba(0, 0, 0, 0.7);
- border-style: outset; border-width: 1px; 
-border-color: beige</string>
+               <string notr="true">background-color:white;
+color:black;</string>
               </property>
               <property name="text">
-               <string>Mapping</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QCheckBox" name="checkBox_skeleton">
-              <property name="styleSheet">
-               <string notr="true">color: white; 
-background-color: rgba(0, 0, 0, 0.7); 
-border-style: outset; 
-border-width: 1px; 
-border-color: beige</string>
-              </property>
-              <property name="text">
-               <string>skeleton</string>
+               <string>Zruš warning</string>
               </property>
              </widget>
             </item>
@@ -363,49 +347,6 @@ border-color: beige;</string>
              <height>35</height>
             </size>
            </property>
-           <widget class="QLabel" name="skeletonText">
-            <property name="geometry">
-             <rect>
-              <x>0</x>
-              <y>0</y>
-              <width>200</width>
-              <height>30</height>
-             </rect>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>200</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>200</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="font">
-             <font>
-              <pointsize>14</pointsize>
-              <bold>true</bold>
-             </font>
-            </property>
-            <property name="layoutDirection">
-             <enum>Qt::LeftToRight</enum>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">color: #000;
-background-color: #FFF;
-border: 2px solid #000;
-border-radius: 2px;</string>
-            </property>
-            <property name="text">
-             <string>TextLabel</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignCenter</set>
-            </property>
-           </widget>
           </widget>
          </item>
          <item>

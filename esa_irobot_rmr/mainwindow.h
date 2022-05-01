@@ -192,6 +192,119 @@ typedef struct
     std::chrono::steady_clock::time_point timestamp;
     cv::Mat data;
 }CameraVector;
+
+
+
+
+
+struct local
+{
+    long double robotX;
+    long double robotY;
+    std::deque<double> requiredPosX={};
+    std::deque<double> requiredPosY={};
+    std::deque<double> checkRequiredPosX={};
+    std::deque<double> checkRequiredPosY={};
+
+
+    //tuple(X OF Points,Y of points,color of points,size of points)
+    vector< tuple <double,double,string,double> > fusionPoints;
+
+    double sensorDist[277];
+
+    double deadZone1Angle=0.5;
+    double deadZone2Angle=2;
+    double deadZoneTranslate=0.05;
+    double deadZoneToRequiredPos=0.04;
+
+
+    int endOfPositioning=true;
+    bool startOfTranslate = true;
+    bool startOfRotate = true;
+    double tr_dist_of_RW=0;
+    double tr_dist_of_LW=0;
+    double tr_dist=0;
+
+    //traveled distance from last point where was calculate setpoint
+    long double tr_dist_fr_lastP=0;
+    double startX=0;
+    double startY=0;
+
+    int is_overflow=0;
+
+    double setpointAngle=0;
+    double setpointAngle_0_360=0;
+    double setpointLength=0;
+
+    double outputAngleAction=0;
+    double outputLenAction=0;
+
+    PID P_reg_Length = PID(0.1, 3, -3, 12, 0, 0);
+    PID P_reg_Angle = PID(0.1, 3.14159, -3.14159, 0.2, 0, 0);
+    double xObr;
+    double yObr;
+
+
+    int gyroAngle_0_360=0;
+    signed short gyroAngle_180_180=0;
+
+    signed short angleOnStart;
+    unsigned short prevValEncLeft=0;
+    unsigned short prevValEncRight=0;
+    short prevValGyro=0;
+
+
+    double fuziaY=6;
+
+    bool rotating=false;
+    bool translating=true;
+
+    short robotMap [ 120 ][ 120 ];
+    short robotMap2 [ 120 ][ 120 ];
+    short robotMapWide [ 120 ][ 120 ];
+
+
+    double shortestX=1000000;
+    double shortestY=1000000;
+    double shortest=1000000;
+
+    int maxMapY=0;
+    int minMapY=10000000;
+
+    int maxMapX=0;
+    int minMapX=10000000;
+
+    bool prekazka=false;
+    double shortestWay;
+
+    string show_Map_or_Camera="camera";
+
+
+    double robotStartCellX=60;
+    double robotStartCellY=60;
+
+    double pocetBuniekX=0;
+    double pocetBuniekY=0;
+    double Ypixels=0;
+    double pomer=0;
+    double Xpixels=0;
+    int pomerY=0;
+    double maxdist=0;
+
+
+    double Xnavigate;
+    double Ynavigate;
+
+
+    bool showObstacleWarning=false;
+
+
+    double incPer=0;
+
+    vector< tuple <double,double> > selectedPoints;
+    QImage mapImage;
+
+};
 namespace Ui {
 class MainWindow;
 }
@@ -201,9 +314,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    long double robotX;
-    long double robotY;
-    double robotFi;
+
     int globalcommand;
 
     int EncMax=65536;
@@ -221,6 +332,8 @@ public:
     double deltaVzdialenostR;
     bool prvyStart=true;
     double gyro;
+    long double tickToMeter = 0.000085292090497737556558; // [m/tick]
+
 
     std::string ipaddress;
     std::vector<RobotCommand> commandQuery;
@@ -325,15 +438,11 @@ private slots:
     void on_pushButton_12_clicked();
     bool navigate_to_selected_point(int Xbunka,int Ybunka);
 
-    void on_checkBox_clicked(bool checked);
-
-    void on_checkBox_skeleton_clicked(bool checked);
-
-    void on_Mapping_clicked(bool checked);
-
     void on_showMap_clicked(bool checked);
 
     void on_showCam_clicked(bool checked);
+
+    void on_cancelWarning_clicked(bool checked);
 
 private:
     QImage imgIn;
@@ -364,7 +473,7 @@ private:
         MODE=3.  Uloha3;
         MODE=4.  Uloha4;
     */
-    short MODE=2;
+    short MODE=4;
 
 protected:
 //    void mousePressEvent(QMouseEvent *event) override;
@@ -372,11 +481,9 @@ protected:
 
 
 public slots:
-     void setUiValues(QString instruction);
      void setUiValuesR(double robotX,double robotY);
 
 signals:
-     void uiValuesChanged(QString newInstruction); ///toto nema telo
      void uiValuesChangedR(double newrobotX,double newrobotY); ///toto nema telo
 
 

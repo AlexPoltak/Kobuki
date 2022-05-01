@@ -99,6 +99,8 @@ void MainWindow::localrobot(TKobukiData &sens)
    //calculation of traveled distance from last point where were recalculate setpoints for P controllers
     local.tr_dist_fr_lastP=local.tr_dist_fr_lastP+local.tr_dist;
 
+    local.tr_dist_fr_lastP2=local.tr_dist_fr_lastP2+local.tr_dist;
+
    //recalculation of gyroangle to be 0 when code start(+X is in front of robot,+Y is on left of robot), and recalculate if is overflow
     if(sens.GyroAngle-local.angleOnStart<-18000)
     {
@@ -125,7 +127,7 @@ void MainWindow::localrobot(TKobukiData &sens)
    //find out if the robot is rotating
     if(local.prevValGyro-local.gyroAngle_180_180!=0){local.rotating=true;}
     else{local.rotating=false;}
-    local.prevValGyro=sens.GyroAngle;
+    local.prevValGyro=local.gyroAngle_180_180;
 
 
 
@@ -157,7 +159,7 @@ int MainWindow::locallaser(LaserMeasurement &laserData){
 
     for(int k=0;k<laserData.numberOfScans;k++){   
        //finding out whether the robot is going to crash
-        if(laserData.Data[k].scanDistance/1000.0<0.3&&laserData.Data[k].scanDistance/1000.0>0.0&&!local.stoped&&!local.pointSelected){
+        if(laserData.Data[k].scanDistance/1000.0<0.3&&laserData.Data[k].scanDistance/1000.0>0.0&&!local.pointSelected){
             local.stoped=true;
             local.requiredPosX.clear();
             local.requiredPosY.clear();
@@ -166,7 +168,11 @@ int MainWindow::locallaser(LaserMeasurement &laserData){
             ui->Warning_Prekazka_text->setText("skoro som narazil");
             ui->Warning_Prekazka_text->setVisible(true);
             local.pointSelected=true;
+            local.tr_dist_fr_lastP2=0;
         }
+
+        if(local.tr_dist_fr_lastP2>0.04){local.pointSelected=false;}
+
 
 
         double dist=laserData.Data[k].scanDistance/1000.0;
@@ -185,21 +191,6 @@ int MainWindow::locallaser(LaserMeasurement &laserData){
             local.robotStartCellY=(local.robotX*10.0)+60.0;
         }
        //finding out if there is an obstacle in the way
-//        if(!local.requiredPosX.empty()&&local.prekazka2==false){
-//            Point2f pt(xOfPoint, yOfPoint);
-//            Point2f midpoint(local.robotX+   ((local.requiredPosX.front()-local.robotX)/2),local.robotY+    ((local.requiredPosY.front()-local.robotY)/2));
-//           //create zone between robot position and required position
-//            RotatedRect rr1 ( midpoint,Size2f(euclidDist(local.robotX,local.robotY,local.requiredPosX.front(),local.requiredPosY.front()),0.4), atan2(local.requiredPosY.front() - local.robotY, local.requiredPosX.front() - local.robotX)*180/PI);
-//            Point2f vtx[4];
-
-//            rr1.points(vtx);
-//           //checking if some of laser points is in zone
-//            if(pointInRectangle(vtx[1],vtx[0],vtx[3],vtx[2],pt)&&abs(pt.x)>0&&abs(pt.y)>0){
-//                local.prekazka2=true;
-//                cout<<"preakzka2"<<endl;
-//            }
-//        }
-
         if(!local.checkRequiredPosX.empty()&&local.prekazka==false){
             Point2f pt(xOfPoint, yOfPoint);
             Point2f midpoint(local.robotX+   ((local.checkRequiredPosX.front()-local.robotX)/2),local.robotY+    ((local.checkRequiredPosY.front()-local.robotY)/2));
@@ -211,8 +202,6 @@ int MainWindow::locallaser(LaserMeasurement &laserData){
            //checking if some of laser points is in zone
             if(pointInRectangle(vtx[1],vtx[0],vtx[3],vtx[2],pt)&&abs(pt.x)>0&&abs(pt.y)>0){
                 local.prekazka=true;
-                cout<<"preakzka1"<<endl;
-
             }
         }
 
@@ -252,12 +241,7 @@ int MainWindow::locallaser(LaserMeasurement &laserData){
         local.prekazka=false;
 
     }
-//    if(local.prekazka2==true)
-//    {
-//        ui->Warning_Prekazka_text->setText("V ceste je prekážka, naviguj na iné miesto");
-//        ui->Warning_Prekazka_text->setVisible(true);
-//        local.prekazka2=false;
-//    }
+
    //if there is no required position clear finish point which would be paint in map
     if(local.requiredPosY.empty()&&local.selectedPoints.size()>0){
         local.selectedPoints.clear();
@@ -623,7 +607,8 @@ void MainWindow::autonomousrobot(TKobukiData &sens)
 // dopravne oneskorenie nema vplyv na data
 int MainWindow::autonomouslaser(LaserMeasurement &laserData)
 {
-
+   //calculation of traveled distance from last point where were recalculate setpoints for P controllers
+    autonomous.tr_dist_fr_lastP2=autonomous.tr_dist_fr_lastP2+autonomous.tr_dist;
     for(int k=0;k<laserData.numberOfScans;k++){
        //finding out whether the robot is going to crash
         if(laserData.Data[k].scanDistance/1000.0<0.3&&laserData.Data[k].scanDistance/1000.0>0.0&&autonomous.mozes){
@@ -633,7 +618,7 @@ int MainWindow::autonomouslaser(LaserMeasurement &laserData)
             autonomous.stoped=true;
             autonomous.mozes=false;
             autonomous.endOfPositioning=true;
-
+            autonomous.tr_dist_fr_lastP2=0;
         }
     }
 
@@ -666,7 +651,8 @@ int MainWindow::autonomouslaser(LaserMeasurement &laserData)
         }
 
     }
-
+    cout<<autonomous.requiredPosX.size()<<endl;
+    if(autonomous.tr_dist_fr_lastP2>0.04){autonomous.mozes=true;}
    //if robot stopped before crashing and then we clicked and choose some postion in map and is no obstacle in way then disable stop
     if(!autonomous.mozes&&autonomous.requiredPosX.size()>0&&!autonomous.prekazka){
         autonomous.stoped=false;
@@ -925,6 +911,11 @@ void MainWindow::paintEvent(QPaintEvent *event)
            double  dist_PINKY_F_TIP_and_WRIST=euclidDist(kostricka.joints[20].x,kostricka.joints[20].y,kostricka.joints[0].x,kostricka.joints[0].y);
            double  dist_PINKY_F_MCP_and_WRIST=euclidDist(kostricka.joints[17].x,kostricka.joints[17].y,kostricka.joints[0].x,kostricka.joints[0].y);
 
+           double  dist_IND_F_TIP_and_WRIST=euclidDist(kostricka.joints[8].x,kostricka.joints[8].y,kostricka.joints[0].x,kostricka.joints[0].y);
+           double  dist_IND_F_MCP_and_WRIST=euclidDist(kostricka.joints[5].x,kostricka.joints[5].y,kostricka.joints[0].x,kostricka.joints[0].y);
+
+           double  dist_MID_F_TIP_and_WRIST=euclidDist(kostricka.joints[12].x,kostricka.joints[12].y,kostricka.joints[0].x,kostricka.joints[0].y);
+           double  dist_MID_F_MCP_and_WRIST=euclidDist(kostricka.joints[9].x,kostricka.joints[9].y,kostricka.joints[0].x,kostricka.joints[0].y);
 
            double angle=atan2(kostricka.joints[8].y-kostricka.joints[0].y,kostricka.joints[8].x-kostricka.joints[0].x)*180/PI; 
           //if we do straight and join Index finger and middle finger and at the same time pinky and ring fingers are at wrist and also our fingers lead up, robot will go forward
@@ -950,10 +941,12 @@ void MainWindow::paintEvent(QPaintEvent *event)
                emit uiValuesChanged("vpravo");
            }
 
-           else{
+           else if((dist_RING_F_TIP_and_WRIST > dist_RING_F_MCP_and_WRIST )  && (dist_PINKY_F_TIP_and_WRIST>dist_PINKY_F_MCP_and_WRIST) && (dist_IND_F_TIP_and_WRIST>dist_IND_F_MCP_and_WRIST)&& (dist_MID_F_TIP_and_WRIST>dist_MID_F_MCP_and_WRIST)  &&angle<-70&&angle>-120) {
                sendRobotCommand(ROBOT_STOP);
                emit uiValuesChanged("stop");
-
+           }
+           else{
+               emit uiValuesChanged("Nezadane");
            }
         }
     }
@@ -1065,8 +1058,9 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 {
     QPoint lastPoint = event->pos();
 
+   //if we clicked somewhere in map
     if (event->button() == Qt::LeftButton&&local.show_Map_or_Camera=="map"&&lastPoint.x()<(ui->frame1->width()-220)){
-
+       //if warning is show we have to click again to hide warning and then when we click,program wont go to this condition
         if( ui->Warning_Prekazka_text->isVisible()&&autonomous.centralSTOP==false)
         {
             ui->Warning_Prekazka_text->setText("V ceste je prekážka, naviguj na iné miesto");
@@ -1080,6 +1074,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 local.klik=true;
 
         }
+       //if we clicked somewhere in map and warnnig is no show then we take point where we clicked and recalcuclate it to position where robot will go
         else if(local.checkRequiredPosX.empty()&&local.requiredPosX.empty()&&autonomous.centralSTOP==false){
             local.klik=false;
 
@@ -1212,7 +1207,6 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
 {
     //pre pismena je key ekvivalent ich ascii hodnoty
     //pre ine klavesy pozrite tu: https://doc.qt.io/qt-5/qt.html#Key-enum
-    std::cout<<event->key()<<std::endl;
 
     if(event->key()==Qt::Key_W){
         sendRobotCommand(ROBOT_VPRED,250);
@@ -1656,67 +1650,6 @@ void MainWindow::robotexec()
 }
 */
 
-
-
-//void MainWindow::on_pushButton_8_clicked()//forward
-//{
-//    CommandVector help;
-//    help.command.commandType=1;
-//    help.command.actualAngle=0;
-//    help.command.actualDist=0;
-//    help.command.desiredAngle=0;
-//    help.command.desiredDist=100;
-//    struct timespec t;
-
-//    // clock_gettime(CLOCK_REALTIME,&t);
-//    help.timestamp=std::chrono::steady_clock::now();//(int64_t)(t.tv_sec) * (int64_t)1000000000 + (int64_t)(t.tv_nsec);
-//    AutonomousCommandQuerry.push_back(help);
-//}
-
-//void MainWindow::on_pushButton_10_clicked()//right
-//{
-//    CommandVector help;
-//    help.command.commandType=2;
-//    help.command.actualAngle=0;
-//    help.command.actualDist=0;
-//    help.command.desiredAngle=-20;
-//    help.command.desiredDist=0;
-//    struct timespec t;
-
-//    // clock_gettime(CLOCK_REALTIME,&t);
-//    help.timestamp=std::chrono::steady_clock::now();//(int64_t)(t.tv_sec) * (int64_t)1000000000 + (int64_t)(t.tv_nsec);
-//    AutonomousCommandQuerry.push_back(help);
-//}
-
-//void MainWindow::on_pushButton_11_clicked()//back
-//{
-//    CommandVector help;
-//    help.command.commandType=1;
-//    help.command.actualAngle=0;
-//    help.command.actualDist=0;
-//    help.command.desiredAngle=0;
-//    help.command.desiredDist=-100;
-//    struct timespec t;
-
-//    //   clock_gettime(CLOCK_REALTIME,&t);
-//    help.timestamp=std::chrono::steady_clock::now();//(int64_t)(t.tv_sec) * (int64_t)1000000000 + (int64_t)(t.tv_nsec);
-//    AutonomousCommandQuerry.push_back(help);
-//}
-
-//void MainWindow::on_pushButton_9_clicked()//left
-//{
-//    CommandVector help;
-//    help.command.commandType=2;
-//    help.command.actualAngle=0;
-//    help.command.actualDist=0;
-//    help.command.desiredAngle=20;
-//    help.command.desiredDist=0;
-//    struct timespec t;
-
-//    //   clock_gettime(CLOCK_REALTIME,&t);
-//    help.timestamp=std::chrono::steady_clock::now();//(int64_t)(t.tv_sec) * (int64_t)1000000000 + (int64_t)(t.tv_nsec);
-//    AutonomousCommandQuerry.push_back(help);
-//}
 
 
 
