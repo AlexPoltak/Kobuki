@@ -47,7 +47,8 @@
 #include "regulator.h"
 #include <tuple>
 #include "math.h"
-#include <cstring>
+#include <QDoubleValidator>
+
 
 #define ROBOT_VPRED 0x01
 #define ROBOT_VZAD 0x02
@@ -263,15 +264,17 @@ struct local
     short robotMapWide [ 120 ][ 120 ];
 
 
-    double shortestX=1000000;
-    double shortestY=1000000;
-    double shortest=1000000;
-    double shortestWay;
+    double shortestShiftedLeftX=1000000;
+    double shortestShiftedLeftY=1000000;
+    double shortestLeftX=1000000;
+    double shortestLeftY=1000000;
+    double shortestShiftedLeftWay;
 
-    double shortestX2=1000000;
-    double shortestY2=1000000;
-    double shortest2=1000000;
-    double shortestWay2;
+    double shortestShiftedRightX=1000000;
+    double shortestShiftedRightY=1000000;
+    double shortestRightX=1000000;
+    double shortestRightY=1000000;
+    double shortestShiftedRightWay;
 
     double finalShortestX;
     double finalShortestY;

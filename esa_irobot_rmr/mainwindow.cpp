@@ -127,9 +127,6 @@ void MainWindow::localrobot(TKobukiData &robotdata)
             if(MODE==2&&local.prekazka&&!local.requiredPosY.empty()){
                 local.prekazka=false;
                 local.mozes=true;
-                local.shortestX=1000000;
-                local.shortestY=1000000;
-                local.shortest=1000000;
                 local.maxMapY=0;
                 local.minMapY=10000000;
                 local.maxMapX=0;
@@ -378,7 +375,14 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
     local.fusionPoints.clear();
     local.prekazka=false;
     if(MODE==2){
-        memset(local.robotMap, sizeof(short)*120*120);
+//        memset(local.robotMap,0, sizeof(short)*120*120);
+        for (int i=0; i< 120;i++) //This variable is for each row below the x
+        {
+            for (int j=0; j<120;j++)
+            {
+                local.robotMap[i][j]=0;
+            }
+        }
     }
 
     for(int k=0;k<laserData.numberOfScans;k++){
@@ -392,7 +396,7 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
         double xOfPoint=(dist*cos((360.0-laserData.Data[k].scanAngle+local.gyroAngle_180_180/100.0)*PI/180.0))+local.robotX;
         double yOfPoint=(dist*sin((360.0-laserData.Data[k].scanAngle+local.gyroAngle_180_180/100.0)*PI/180.0))+local.robotY;
         //insert points to map
-        if(local.rotating==false&&dist<2.5&&MODE==3){
+        if(local.rotating==false&&dist<2.5&&MODE==3||MODE==2){
             local.robotMap[(int)round((xOfPoint/0.1)+60.0)][(int)round((yOfPoint/0.1)+60.0)]=1;
             local.robotStartCellX=(local.robotX*10.0)+60.0;
             local.robotStartCellY=(local.robotX*10.0)+60.0;
@@ -430,12 +434,11 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
     }
 
 
-
+   //find left and right points of obstacle
    if(local.prekazka==true&&MODE==2){
 
-        for(int x=local.obstacleindex;x<=local.obstacleindex+188;x++){
-            if(x>=276){
-                cout<<"weewve"<<endl;
+        for(int x=local.obstacleindex;x<=local.obstacleindex+laserData.numberOfScans/2;x++){
+            if(x>=laserData.numberOfScans){
                 x=x-laserData.numberOfScans+1;
             }
 
@@ -445,16 +448,16 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
 
            if(((abs(laserData.Data[x+1].scanDistance/1000-laserData.Data[x].scanDistance/1000)>0.4) ) )
             {
-                double moredist=laserData.Data[x].scanDistance/1000+0.5;
-                double moreangle=atan2( 0.5,moredist) * 180 / PI;
+                double shiftDist=laserData.Data[x].scanDistance/1000+0.5;
+                double shiftAngle=atan2( 0.5,shiftDist) * 180 / PI;
 
-                double xOfPoint=(moredist*cos((360.0-laserData.Data[x].scanAngle+moreangle+local.gyroAngle_0_360/100)*PI/180.0))+local.robotX;
-                double yOfPoint=(moredist*sin((360.0-laserData.Data[x].scanAngle+moreangle+local.gyroAngle_0_360/100)*PI/180.0))+local.robotY;
-                local.shortestWay=(euclidDist(xOfPoint,yOfPoint,local.robotX,local.robotY)+euclidDist(xOfPoint,yOfPoint,local.checkRequiredPosX.front(),local.checkRequiredPosY.front()) );
-
-                local.shortest=local.shortestWay;
-                local.shortestX=xOfPoint;
-                local.shortestY=yOfPoint;
+                double xOfPoint=(shiftDist*cos((360.0-laserData.Data[x].scanAngle+shiftAngle+local.gyroAngle_0_360/100)*PI/180.0))+local.robotX;
+                double yOfPoint=(shiftDist*sin((360.0-laserData.Data[x].scanAngle+shiftAngle+local.gyroAngle_0_360/100)*PI/180.0))+local.robotY;
+                local.shortestShiftedLeftWay=(euclidDist(xOfPoint,yOfPoint,local.robotX,local.robotY)+euclidDist(xOfPoint,yOfPoint,local.checkRequiredPosX.front(),local.checkRequiredPosY.front()) );
+                local.shortestShiftedLeftX=xOfPoint;
+                local.shortestShiftedLeftY=yOfPoint;
+                local.shortestLeftX=xOfPoint2;
+                local.shortestLeftY=yOfPoint2;
                 break;
             }
 
@@ -462,9 +465,8 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
 
 
 
-        for(int x=local.obstacleindex;x>=local.obstacleindex-188;x--){
+        for(int x=local.obstacleindex;x>=local.obstacleindex-laserData.numberOfScans/2;x--){
             if(x<0){
-                cout<<"weewve"<<endl;
                 x=laserData.numberOfScans+1+x;
             }
 
@@ -474,45 +476,34 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
 
            if(((abs(laserData.Data[x].scanDistance/1000-laserData.Data[x-1].scanDistance/1000)>0.4) ) )
             {
-                double moredist=laserData.Data[x].scanDistance/1000+0.5;
-                double moreangle=atan2( 0.5,moredist) * 180 / PI;
+                double shiftDist=laserData.Data[x].scanDistance/1000+0.5;
+                double shiftAngle=atan2( 0.5,shiftDist) * 180 / PI;
 
-                double xOfPoint=(moredist*cos((360.0-laserData.Data[x].scanAngle-moreangle+local.gyroAngle_0_360/100)*PI/180.0))+local.robotX;
-                double yOfPoint=(moredist*sin((360.0-laserData.Data[x].scanAngle-moreangle+local.gyroAngle_0_360/100)*PI/180.0))+local.robotY;
-                local.shortestWay2=(euclidDist(xOfPoint,yOfPoint,local.robotX,local.robotY)+euclidDist(xOfPoint,yOfPoint,local.checkRequiredPosX.front(),local.checkRequiredPosY.front()) );
-
-                local.shortest2=local.shortestWay2;
-                local.shortestX2=xOfPoint;
-                local.shortestY2=yOfPoint;
+                double xOfPoint=(shiftDist*cos((360.0-laserData.Data[x].scanAngle-shiftAngle+local.gyroAngle_0_360/100)*PI/180.0))+local.robotX;
+                double yOfPoint=(shiftDist*sin((360.0-laserData.Data[x].scanAngle-shiftAngle+local.gyroAngle_0_360/100)*PI/180.0))+local.robotY;
+                local.shortestShiftedRightWay=(euclidDist(xOfPoint,yOfPoint,local.robotX,local.robotY)+euclidDist(xOfPoint,yOfPoint,local.checkRequiredPosX.front(),local.checkRequiredPosY.front()) );
+                local.shortestShiftedRightX=xOfPoint;
+                local.shortestShiftedRightY=yOfPoint;
+                local.shortestRightX=xOfPoint2;
+                local.shortestRightY=yOfPoint2;
                 break;
             }
 
         }
 
 
-        if(local.shortestWay<local.shortestWay2){
-            local.finalShortestX=local.shortestX;
-            local.finalShortestY=local.shortestY;
+        if(local.shortestShiftedLeftWay<local.shortestShiftedRightWay){
+            local.finalShortestX=local.shortestShiftedLeftX;
+            local.finalShortestY=local.shortestShiftedLeftY;
         }
         else{
-            local.finalShortestX=local.shortestX2;
-            local.finalShortestY=local.shortestY2;
+            local.finalShortestX=local.shortestShiftedRightX;
+            local.finalShortestY=local.shortestShiftedRightY;
         }
    }
-   if(!local.prekazka&&MODE==2){
-        local.shortestX=1000000;
-        local.shortestY=1000000;
-        local.shortest=1000000;
-        local.shortestWay=0;
-
-        local.shortestX2=1000000;
-        local.shortestY2=1000000;
-        local.shortest2=1000000;
-        local.shortestWay2=0;
-   }
 
 
-   cout<<local.shortestX2<<"  "<<local.shortestY2<<" "<<local.shortestX<<" "<<local.shortestY<<endl;
+//   cout<<local.shortestX2<<"  "<<local.shortestY2<<" "<<local.shortestX<<" "<<local.shortestY<<endl;
 
 
 
@@ -820,7 +811,7 @@ void MainWindow::paintEvent(QPaintEvent *event)
 
     }
 
-    if(local.show_Map_or_Camera=="map"&&!imgIn.isNull()&&MODE!=2)
+    if(local.show_Map_or_Camera=="map"&&!imgIn.isNull())
     {
        //rescale map to main frame
         painter.drawImage(80,80,local.mapImage.scaled(ui->frame1->width()-360,ui->frame1->height()-160,Qt::KeepAspectRatio,Qt::TransformationMode()));
@@ -840,66 +831,13 @@ void MainWindow::paintEvent(QPaintEvent *event)
         painter.drawEllipse(((60.0+(local.robotX*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.robotY*10.0)-local.minMapY)*local.pomer)-80-1.5*local.pomer-local.pomerY,3.0*local.pomer,3.0*local.pomer);
 
 
-        if(MODE==2&&!local.requiredPosX.empty()){
-            painter.drawEllipse(((60.0+(local.shortestX*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.shortestY *10.0)-local.minMapY)*local.pomer)-80-1.5*local.pomer-local.pomerY,3.0*local.pomer,3.0*local.pomer);
-            painter.drawEllipse(((60.0+(local.shortestX2*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.shortestY2 *10.0)-local.minMapY)*local.pomer)-1.5*local.pomer-80-local.pomerY,3.0*local.pomer,3.0*local.pomer);
-            painter.drawEllipse(((60.0+(local.shortestX*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.shortestY *10.0)-local.minMapY)*local.pomer)-80-1.5*local.pomer-local.pomerY,3.0*local.pomer,3.0*local.pomer);
-            painter.drawEllipse(((60.0+(local.shortestX2*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.shortestY2 *10.0)-local.minMapY)*local.pomer)-1.5*local.pomer-80-local.pomerY,3.0*local.pomer,3.0*local.pomer);
-
-        }
-
-       //if there is some required position then we paint it
-        if(local.selectedPoints.size()>0){
-            pero.setStyle(Qt::SolidLine);
-            pero.setWidth(local.pomer/2);
-            pero.setColor(Qt::white);
-            painter.setPen(pero);
-           //draw line from robot to required position
-            painter.drawLine(((60.0+(local.robotX*10.0)-local.minMapX)*local.pomer)+80, ui->frame1->height()-((60.0+(local.robotY*10.0)-local.minMapY)*local.pomer)-80-local.pomerY,((get<0>(local.selectedPoints.front())-local.minMapX)*local.pomer)+80 ,ui->frame1->height()-((get<1>(local.selectedPoints.front())-local.minMapY)*local.pomer)-80-local.pomerY);
-
-            pero.setStyle(Qt::SolidLine);
-            pero.setWidth(local.pomer/4);
-            painter.setPen(pero);
-            painter.setBrush((Qt::red));
-           //draw point where required position is
-            painter.drawEllipse(((get<0>(local.selectedPoints.front())-local.minMapX)*local.pomer)+80-0.75*local.pomer ,ui->frame1->height()-((get<1>(local.selectedPoints.front())-local.minMapY)*local.pomer)-80-0.75*local.pomer-local.pomerY,1.5*local.pomer,1.5*local.pomer);
-
-        }
-        pero.setStyle(Qt::SolidLine);
-        pero.setWidth(local.pomer/4);
-        pero.setColor(Qt::black);
-        painter.setPen(pero);
-        int y=sin(local.gyroAngle_180_180/100*PI/180)*1.5*local.pomer;
-        int x=cos(local.gyroAngle_180_180/100*PI/180)*1.5*local.pomer;
-       //draw rotating line on robot according rotation of robot
-        painter.drawLine(((60.0+(local.robotX*10.0)-local.minMapX)*local.pomer)+80, ui->frame1->height()-((60.0+(local.robotY*10.0)-local.minMapY)*local.pomer)-80-local.pomerY, ((60.0+(local.robotX*10.0)-local.minMapX)*local.pomer)+80+x,ui->frame1->height()-((60.0+(local.robotY*10.0)-local.minMapY)*local.pomer)-80-local.pomerY-y);
-
-    }
-
-    if(local.show_Map_or_Camera=="map"&&!imgIn.isNull()&&MODE==2)
-    {
-        local.Ypixels=ui->frame1->height()-160;
-        local.Xpixels=ui->frame1->width()-360;
-
-        if((local.Xpixels/local.pocetBuniekX)<(local.Ypixels/local.pocetBuniekY)){
-            local.pomer=(double)(local.Xpixels/local.pocetBuniekX);
-            local.pomerY=(double)ui->frame1->height()-160-(local.pomer*local.pocetBuniekY);
-        }
-        else{
-            local.pomer=(double)(local.Ypixels/local.pocetBuniekY);
-        }
-
-        painter.setBrush((Qt::white));
-       //draw robot in map
-        painter.drawEllipse(((60.0+(local.robotX*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.robotY*10.0)-local.minMapY)*local.pomer)-80-1.5*local.pomer-local.pomerY,3.0*local.pomer,3.0*local.pomer);
-
-
-        if(MODE==2&&!local.requiredPosX.empty()){
-            painter.drawEllipse(((60.0+(local.shortestX*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.shortestY *10.0)-local.minMapY)*local.pomer)-80-1.5*local.pomer-local.pomerY,3.0*local.pomer,3.0*local.pomer);
-            painter.drawEllipse(((60.0+(local.shortestX2*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.shortestY2 *10.0)-local.minMapY)*local.pomer)-1.5*local.pomer-80-local.pomerY,3.0*local.pomer,3.0*local.pomer);
-            painter.drawEllipse(((60.0+(local.shortestX*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.shortestY *10.0)-local.minMapY)*local.pomer)-80-1.5*local.pomer-local.pomerY,3.0*local.pomer,3.0*local.pomer);
-            painter.drawEllipse(((60.0+(local.shortestX2*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.shortestY2 *10.0)-local.minMapY)*local.pomer)-1.5*local.pomer-80-local.pomerY,3.0*local.pomer,3.0*local.pomer);
-
+        if(MODE==2&&!local.requiredPosX.empty()&&local.prekazka){
+            painter.setBrush((Qt::green));
+            painter.drawEllipse(((60.0+(local.shortestShiftedLeftX*10.0)-local.minMapX)*local.pomer)+80-1.0*local.pomer,  ui->frame1->height()-((60.0+(local.shortestShiftedLeftY *10.0)-local.minMapY)*local.pomer)-80-1.0*local.pomer-local.pomerY,2.0*local.pomer,2.0*local.pomer);
+            painter.drawEllipse(((60.0+(local.shortestShiftedRightX*10.0)-local.minMapX)*local.pomer)+80-1.0*local.pomer,  ui->frame1->height()-((60.0+(local.shortestShiftedRightY *10.0)-local.minMapY)*local.pomer)-1.0*local.pomer-80-local.pomerY,2.0*local.pomer,2.0*local.pomer);
+            painter.setBrush((Qt::blue));
+            painter.drawEllipse(((60.0+(local.shortestLeftX*10.0)-local.minMapX)*local.pomer)+80-1.0*local.pomer,  ui->frame1->height()-((60.0+(local.shortestLeftY *10.0)-local.minMapY)*local.pomer)-80-1.0*local.pomer-local.pomerY,2.0*local.pomer,2.0*local.pomer);
+            painter.drawEllipse(((60.0+(local.shortestRightX*10.0)-local.minMapX)*local.pomer)+80-1.0*local.pomer,  ui->frame1->height()-((60.0+(local.shortestRightY *10.0)-local.minMapY)*local.pomer)-1.0*local.pomer-80-local.pomerY,2.0*local.pomer,2.0*local.pomer);
         }
 
        //if there is some required position then we paint it
