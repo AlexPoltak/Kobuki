@@ -118,14 +118,37 @@ void MainWindow::localrobot(TKobukiData &robotdata)
             local.tr_dist_fr_lastP=0;
             local.requiredPosX.pop_front();
             local.requiredPosY.pop_front();
+
+
+
             if(!local.selectedPoints.empty()){
                 local.selectedPoints.pop_back();
+            }
+            if(MODE==2&&local.prekazka&&!local.requiredPosY.empty()){
+                local.prekazka=false;
+                local.mozes=true;
+                local.shortestX=1000000;
+                local.shortestY=1000000;
+                local.shortest=1000000;
+                local.maxMapY=0;
+                local.minMapY=10000000;
+                local.maxMapX=0;
+                local.minMapX=10000000;
+                if(!local.requiredPosX.empty()){
+                    local.checkRequiredPosX.clear();
+                    local.checkRequiredPosY.clear();
+                    local.checkRequiredPosX.push_front(local.requiredPosX.front());
+                    local.checkRequiredPosY.push_front(local.requiredPosY.front());
+                }
             }
 
            // If there are no more positions to navigate, then the positioning is over
             if((local.requiredPosX.empty()||local.requiredPosY.empty())&&local.endOfPositioning==false)
             {
                 local.endOfPositioning=true;
+                local.checkRequiredPosX.clear();
+                local.checkRequiredPosY.clear();
+                local.selectedPoints.clear();
                 cout<<"end Of Positioning"<<endl;
                 stop();
                 printMapToFile();
@@ -133,76 +156,77 @@ void MainWindow::localrobot(TKobukiData &robotdata)
             }
         }
 
-
-       //When distance of robot from trajectory is more than deadzone then recalculate setpoints for P controllers.
-        if(abs(distFromPointToLine(local.robotX,local.robotY,local.startX,local.startY,local.requiredPosX.front(),local.requiredPosY.front()))>local.deadZoneTranslate){local.tr_dist_fr_lastP=0;}
-       //When the difference between the angle of the robot and the setpoint is more than deadzone then recalculate setpoints for P controllers.
-        if(abs(local.setpointAngle-local.gyroAngle_180_180/100.0)>local.deadZone2Angle){local.tr_dist_fr_lastP=0;}
-
-
-       //finding setpoints for angle and distance to required position
-        if(local.tr_dist_fr_lastP==0)
-        {
-            local.setpointAngle=(atan2(local.requiredPosY.front() -local.robotY,local.requiredPosX.front()-local.robotX)*180.0/PI);
-            local.setpointLength=sqrt(pow(local.requiredPosY.front()-local.robotY,2)+pow(local.requiredPosX.front()-local.robotX,2));
-        }
-       //recalculation of setpointAngle to angle from 0 to 360
-        if(local.setpointAngle<0)
-        {
-            local.setpointAngle_0_360= 360+local.setpointAngle;
-        }
-        else{local.setpointAngle_0_360=local.setpointAngle;}
+        if(!local.requiredPosX.empty()){
+           //When distance of robot from trajectory is more than deadzone then recalculate setpoints for P controllers.
+            if(abs(distFromPointToLine(local.robotX,local.robotY,local.startX,local.startY,local.requiredPosX.front(),local.requiredPosY.front()))>local.deadZoneTranslate){local.tr_dist_fr_lastP=0;}
+           //When the difference between the angle of the robot and the setpoint is more than deadzone then recalculate setpoints for P controllers.
+            if(abs(local.setpointAngle-local.gyroAngle_180_180/100.0)>local.deadZone2Angle){local.tr_dist_fr_lastP=0;}
 
 
-       //rotation speed control
-        if(abs(local.setpointAngle_0_360-local.gyroAngle_0_360/100.0)>local.deadZone1Angle){
-
-            local.rotating=true;
-            local.translating=false;
-
-           //this is recalculation to make the robot rotate a shorter path
-            if(local.gyroAngle_180_180/100-local.setpointAngle>-180.0&&local.gyroAngle_180_180/100-local.setpointAngle<0.0){
-                local.outputAngleAction = local.P_reg_Angle.calculate(local.setpointAngle, robotdata.GyroAngle/100.0);
-            }
-            else if(local.setpointAngle_0_360-local.gyroAngle_0_360/100.0<=180){
-                local.outputAngleAction = local.P_reg_Angle.calculate(local.setpointAngle_0_360, local.gyroAngle_0_360/100.0);
-            }
-            else if((local.setpointAngle_0_360-local.gyroAngle_0_360/100.0)>180){
-                local.outputAngleAction = local.P_reg_Angle.calculate(local.setpointAngle, robotdata.GyroAngle/100.0);
-            }
-
-
-
-           //when is start of rotate the output from P angle regulator is limited by ramp
-            if(local.startOfRotate==true){
-                local.outputAngleAction=ramp(local.outputAngleAction,0.1,&local.startOfRotate);
-                turn_around(local.outputAngleAction);
-            }
-           //when ramp ends then turning and deceleration speed is fully on P angle regulator
-            else{
-                turn_around(local.outputAngleAction);
-            }
-        }
-
-
-        //translation speed control
-        if(abs(local.setpointAngle_0_360-local.gyroAngle_0_360/100.0)<=local.deadZone1Angle){
-
-            local.outputLenAction = local.P_reg_Length.calculate(local.setpointLength, local.tr_dist_fr_lastP)*100.0;
-
-           //when is start of translation the output from P translate regulator is limited by ramp
-            if(local.startOfTranslate==true)
+           //finding setpoints for angle and distance to required position
+            if(local.tr_dist_fr_lastP==0)
             {
-                local.outputLenAction=ramp(local.outputLenAction,10,&local.startOfTranslate);
-                go(local.outputLenAction);
+                local.setpointAngle=(atan2(local.requiredPosY.front() -local.robotY,local.requiredPosX.front()-local.robotX)*180.0/PI);
+                local.setpointLength=sqrt(pow(local.requiredPosY.front()-local.robotY,2)+pow(local.requiredPosX.front()-local.robotX,2));
             }
-           //when ramp ends then translation and deceleration speed is fully on P translate regulator
-            else
+           //recalculation of setpointAngle to angle from 0 to 360
+            if(local.setpointAngle<0)
             {
-                go(local.outputLenAction);
+                local.setpointAngle_0_360= 360+local.setpointAngle;
             }
-           local. rotating=false;
-            local.translating=true;
+            else{local.setpointAngle_0_360=local.setpointAngle;}
+
+
+           //rotation speed control
+            if(abs(local.setpointAngle_0_360-local.gyroAngle_0_360/100.0)>local.deadZone1Angle){
+
+                local.rotating=true;
+                local.translating=false;
+
+               //this is recalculation to make the robot rotate a shorter path
+                if(local.gyroAngle_180_180/100-local.setpointAngle>-180.0&&local.gyroAngle_180_180/100-local.setpointAngle<0.0){
+                    local.outputAngleAction = local.P_reg_Angle.calculate(local.setpointAngle, robotdata.GyroAngle/100.0);
+                }
+                else if(local.setpointAngle_0_360-local.gyroAngle_0_360/100.0<=180){
+                    local.outputAngleAction = local.P_reg_Angle.calculate(local.setpointAngle_0_360, local.gyroAngle_0_360/100.0);
+                }
+                else if((local.setpointAngle_0_360-local.gyroAngle_0_360/100.0)>180){
+                    local.outputAngleAction = local.P_reg_Angle.calculate(local.setpointAngle, robotdata.GyroAngle/100.0);
+                }
+
+
+
+               //when is start of rotate the output from P angle regulator is limited by ramp
+                if(local.startOfRotate==true){
+                    local.outputAngleAction=ramp(local.outputAngleAction,0.1,&local.startOfRotate);
+                    turn_around(local.outputAngleAction);
+                }
+               //when ramp ends then turning and deceleration speed is fully on P angle regulator
+                else{
+                    turn_around(local.outputAngleAction);
+                }
+            }
+
+
+            //translation speed control
+            if(abs(local.setpointAngle_0_360-local.gyroAngle_0_360/100.0)<=local.deadZone1Angle){
+
+                local.outputLenAction = local.P_reg_Length.calculate(local.setpointLength, local.tr_dist_fr_lastP)*100.0;
+
+               //when is start of translation the output from P translate regulator is limited by ramp
+                if(local.startOfTranslate==true)
+                {
+                    local.outputLenAction=ramp(local.outputLenAction,10,&local.startOfTranslate);
+                    go(local.outputLenAction);
+                }
+               //when ramp ends then translation and deceleration speed is fully on P translate regulator
+                else
+                {
+                    go(local.outputLenAction);
+                }
+               local. rotating=false;
+                local.translating=true;
+            }
         }
 
     }
@@ -352,13 +376,10 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
 {
 
     local.fusionPoints.clear();
-    local.shortestX=1000000;
-    local.shortestY=1000000;
-    local.shortest=1000000;
-    local.maxMapY=0;
-    local.minMapY=10000000;
-    local.maxMapX=0;
-    local.minMapX=10000000;
+    local.prekazka=false;
+    if(MODE==2){
+        memset(local.robotMap, sizeof(short)*120*120);
+    }
 
     for(int k=0;k<laserData.numberOfScans;k++){
 
@@ -368,8 +389,8 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
             continue;
 
        //get laser global points
-        double xOfPoint=(dist*cos((360.0-laserData.Data[k].scanAngle+local.gyroAngle_0_360/100.0)*PI/180.0))+local.robotX;
-        double yOfPoint=(dist*sin((360.0-laserData.Data[k].scanAngle+local.gyroAngle_0_360/100.0)*PI/180.0))+local.robotY;
+        double xOfPoint=(dist*cos((360.0-laserData.Data[k].scanAngle+local.gyroAngle_180_180/100.0)*PI/180.0))+local.robotX;
+        double yOfPoint=(dist*sin((360.0-laserData.Data[k].scanAngle+local.gyroAngle_180_180/100.0)*PI/180.0))+local.robotY;
         //insert points to map
         if(local.rotating==false&&dist<2.5&&MODE==3){
             local.robotMap[(int)round((xOfPoint/0.1)+60.0)][(int)round((yOfPoint/0.1)+60.0)]=1;
@@ -383,12 +404,16 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
                 }
             }
         }
+        if(MODE==2){
+
+
+        }
 
 
 
        //finding out if there is an obstacle in the way
         Point2f ptToCheck(xOfPoint, yOfPoint);
-        if(!local.checkRequiredPosX.empty()&&!local.prekazka&&(MODE==2||MODE==3)){
+        if(!local.checkRequiredPosX.empty()&&(MODE==2||MODE==3)){
             Point2f midpoint(local.robotX+   ((local.checkRequiredPosX.front()-local.robotX)/2),local.robotY+    ((local.checkRequiredPosY.front()-local.robotY)/2));
            //create zone between robot position and required position
             RotatedRect zoneFromRobotToReqPos ( midpoint,Size2f(euclidDist(local.robotX,local.robotY,local.checkRequiredPosX.front(),local.checkRequiredPosY.front()),0.4), atan2(local.checkRequiredPosY.front() - local.robotY, local.checkRequiredPosX.front() - local.robotX)*180/PI);
@@ -397,58 +422,101 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
             zoneFromRobotToReqPos.points(cornerPointsOfZone);
             if(pointInRectangle(cornerPointsOfZone[1],cornerPointsOfZone[0],cornerPointsOfZone[3],cornerPointsOfZone[2],ptToCheck)&&abs(ptToCheck.x)>0&&abs(ptToCheck.y)>0){
                 local.prekazka=true;
+                local.obstacleindex=k;
             }
         }
 
-
-//      find point and shortest distance for circumventing obstacles
-        if(k>2&&k<laserData.numberOfScans-2&&local.prekazka==true&&MODE==2){
-//            bool fromRight=inRange(    abs(laserData.Data[k-1].scanDistance/1000-laserData.Data[k-2].scanDistance/1000)-0.05,    abs(laserData.Data[k-1].scanDistance/1000-laserData.Data[k-2].scanDistance/1000)+0.05        ,abs(laserData.Data[k].scanDistance/1000-laserData.Data[k-1].scanDistance/1000)) ;
-//            bool fromLeft=inRange(    abs(laserData.Data[k+1].scanDistance/1000-laserData.Data[k+2].scanDistance/1000)-0.05,    abs(laserData.Data[k+1].scanDistance/1000-laserData.Data[k+2].scanDistance/1000)+0.05        ,abs(laserData.Data[k].scanDistance/1000-laserData.Data[k+1].scanDistance/1000)) ;
-            local.shortestWay=(euclidDist(ptToCheck.x,ptToCheck.y,local.robotX,local.robotY)+euclidDist(ptToCheck.x,ptToCheck.y,local.checkRequiredPosX.front(),local.checkRequiredPosY.front()) );
-
-//            if((!fromRight||!fromLeft)&&shortestWay<shortest){
-//                  double moredist=laserData.Data[k].scanDistance/1000+0.5;
-//                  double moreangle=atan2( 0.5,moredist) * 180 / PI;
-
-
-//                  double xOfPoint2=(moredist*cos((360.0-laserData.Data[k].scanAngle+moreangle+gyroAngle_0_360/100)*PI/180.0))+robotX;
-//                  double yOfPoint2=(moredist*sin((360.0-laserData.Data[k].scanAngle+moreangle+gyroAngle_0_360/100)*PI/180.0))+robotY;
-
-//                  shortest=(euclidDist(ptToCheck.x,ptToCheck.y,robotX,robotY)+euclidDist(ptToCheck.x,ptToCheck.y,requiredPosX.front(),requiredPosY.front()) );
-//                  shortestX=xOfPoint2;
-//                  shortestY=yOfPoint2;
-//                  cout<<shortestX<<" "<<shortestY<<"gffweasfva"<<endl;
-//            }
-
-           if(((abs(laserData.Data[k].scanDistance/1000-laserData.Data[k-1].scanDistance/1000)>0.05)  ||(abs(laserData.Data[k].scanDistance/1000-laserData.Data[k+1].scanDistance/1000)>0.05) )&&(local.shortestWay<local.shortest) )
-            {
-                double moredist=laserData.Data[k].scanDistance/1000+0.5;
-                double moreangle=atan2( 0.5,moredist) * 180 / PI;
-
-                double xOfPoint2=(moredist*cos((360.0-laserData.Data[k].scanAngle+moreangle+local.gyroAngle_0_360/100)*PI/180.0))+local.robotX;
-                double yOfPoint2=(moredist*sin((360.0-laserData.Data[k].scanAngle+moreangle+local.gyroAngle_0_360/100)*PI/180.0))+local.robotY;
-
-                local.shortest=(euclidDist(ptToCheck.x,ptToCheck.y,local.robotX,local.robotY)+euclidDist(ptToCheck.x,ptToCheck.y,local.checkRequiredPosX.front(),local.checkRequiredPosY.front()) );
-                local.shortestX=xOfPoint2;
-                local.shortestY=yOfPoint2;
-            }
-
-
-        }
 
     }
 
-//    if(MODE==4){
-//        local.requiredPosX.clear();
-//        local.requiredPosY.clear();
 
-//        local.showObstacleWarning=navigate_to_selected_point((int)local.Xnavigate,(int)local.Ynavigate);
-//        local.prekazka=false;
-//        if(local.showObstacleWarning==false){
-//            ui->Warning_Prekazka_text->setVisible(true);
-//        }
-//    }
+
+   if(local.prekazka==true&&MODE==2){
+
+        for(int x=local.obstacleindex;x<=local.obstacleindex+188;x++){
+            if(x>=276){
+                cout<<"weewve"<<endl;
+                x=x-laserData.numberOfScans+1;
+            }
+
+            double dist=laserData.Data[x].scanDistance/1000.0;
+            double xOfPoint2=(dist*cos((360.0-laserData.Data[x].scanAngle+local.gyroAngle_0_360/100.0)*PI/180.0))+local.robotX;
+            double yOfPoint2=(dist*sin((360.0-laserData.Data[x].scanAngle+local.gyroAngle_0_360/100.0)*PI/180.0))+local.robotY;
+
+           if(((abs(laserData.Data[x+1].scanDistance/1000-laserData.Data[x].scanDistance/1000)>0.4) ) )
+            {
+                double moredist=laserData.Data[x].scanDistance/1000+0.5;
+                double moreangle=atan2( 0.5,moredist) * 180 / PI;
+
+                double xOfPoint=(moredist*cos((360.0-laserData.Data[x].scanAngle+moreangle+local.gyroAngle_0_360/100)*PI/180.0))+local.robotX;
+                double yOfPoint=(moredist*sin((360.0-laserData.Data[x].scanAngle+moreangle+local.gyroAngle_0_360/100)*PI/180.0))+local.robotY;
+                local.shortestWay=(euclidDist(xOfPoint,yOfPoint,local.robotX,local.robotY)+euclidDist(xOfPoint,yOfPoint,local.checkRequiredPosX.front(),local.checkRequiredPosY.front()) );
+
+                local.shortest=local.shortestWay;
+                local.shortestX=xOfPoint;
+                local.shortestY=yOfPoint;
+                break;
+            }
+
+        }
+
+
+
+        for(int x=local.obstacleindex;x>=local.obstacleindex-188;x--){
+            if(x<0){
+                cout<<"weewve"<<endl;
+                x=laserData.numberOfScans+1+x;
+            }
+
+            double dist=laserData.Data[x].scanDistance/1000.0;
+            double xOfPoint2=(dist*cos((360.0-laserData.Data[x].scanAngle+local.gyroAngle_0_360/100.0)*PI/180.0))+local.robotX;
+            double yOfPoint2=(dist*sin((360.0-laserData.Data[x].scanAngle+local.gyroAngle_0_360/100.0)*PI/180.0))+local.robotY;
+
+           if(((abs(laserData.Data[x].scanDistance/1000-laserData.Data[x-1].scanDistance/1000)>0.4) ) )
+            {
+                double moredist=laserData.Data[x].scanDistance/1000+0.5;
+                double moreangle=atan2( 0.5,moredist) * 180 / PI;
+
+                double xOfPoint=(moredist*cos((360.0-laserData.Data[x].scanAngle-moreangle+local.gyroAngle_0_360/100)*PI/180.0))+local.robotX;
+                double yOfPoint=(moredist*sin((360.0-laserData.Data[x].scanAngle-moreangle+local.gyroAngle_0_360/100)*PI/180.0))+local.robotY;
+                local.shortestWay2=(euclidDist(xOfPoint,yOfPoint,local.robotX,local.robotY)+euclidDist(xOfPoint,yOfPoint,local.checkRequiredPosX.front(),local.checkRequiredPosY.front()) );
+
+                local.shortest2=local.shortestWay2;
+                local.shortestX2=xOfPoint;
+                local.shortestY2=yOfPoint;
+                break;
+            }
+
+        }
+
+
+        if(local.shortestWay<local.shortestWay2){
+            local.finalShortestX=local.shortestX;
+            local.finalShortestY=local.shortestY;
+        }
+        else{
+            local.finalShortestX=local.shortestX2;
+            local.finalShortestY=local.shortestY2;
+        }
+   }
+   if(!local.prekazka&&MODE==2){
+        local.shortestX=1000000;
+        local.shortestY=1000000;
+        local.shortest=1000000;
+        local.shortestWay=0;
+
+        local.shortestX2=1000000;
+        local.shortestY2=1000000;
+        local.shortest2=1000000;
+        local.shortestWay2=0;
+   }
+
+
+   cout<<local.shortestX2<<"  "<<local.shortestY2<<" "<<local.shortestX<<" "<<local.shortestY<<endl;
+
+
+
+
     if(local.prekazka&&MODE==3){
         local.requiredPosX.clear();
         local.requiredPosY.clear();
@@ -466,18 +534,38 @@ int MainWindow::locallaser(LaserMeasurement &laserData)
 
         local.endOfPositioning=false;
     }
-    if(local.prekazka&&!local.selectedPoints.empty()){
+    if(local.prekazka&&!local.selectedPoints.empty()&&MODE!=2){
         local.selectedPoints.pop_back();
     }
-
-
-    if(local.prekazka&&MODE==2){
-        local.requiredPosX.push_front(local.shortestX);
-        local.requiredPosY.push_front(local.shortestY);
-        local.endOfPositioning=false;
-        local.prekazka=false;
-//        cout<<shortestX<<"        "<<shortestY<<" shortest  k= "<<endl;
+    if(!local.checkRequiredPosX.empty()){
+            local.selectedPoints.push_back(make_tuple((local.checkRequiredPosX.front()*10)+60,(local.checkRequiredPosY.front()*10)+60));
     }
+
+
+
+
+    cout<<local.prekazka<<"xxxxxxxxxxxxxxx"<<endl;
+    cout<<local.checkRequiredPosX.size()<<"     fefefe"<<endl;
+    cout<<local.requiredPosX.size()<<"     fefefe"<<endl;
+    cout<<local.mozes<<"     fefefe"<<endl;
+
+
+    if(local.prekazka&&MODE==2&&local.mozes&&!local.checkRequiredPosX.empty()){
+        if(local.requiredPosX.empty()){
+            local.requiredPosX.push_front(local.checkRequiredPosX.front());
+            local.requiredPosY.push_front(local.checkRequiredPosY.front());
+        }
+        local.selectedPoints.push_back(make_tuple((local.checkRequiredPosX.front()*10)+60,(local.checkRequiredPosY.front()*10)+60));
+
+        local.requiredPosX.push_front(local.finalShortestX);
+        local.requiredPosY.push_front(local.finalShortestY);
+//        local.checkRequiredPosX.clear();
+//        local.checkRequiredPosY.clear();
+        cout<<"velmi dobre"<<endl;
+        local.endOfPositioning=false;
+        local.mozes=false;
+    }
+
 
     for(int k=0;k<120;k++){
         for(int l=0;l<120;l++){
@@ -696,7 +784,6 @@ void MainWindow::paintEvent(QPaintEvent *event)
         if((local.Xpixels/local.pocetBuniekX)<(local.Ypixels/local.pocetBuniekY)){
             local.pomer=(double)(local.Xpixels/local.pocetBuniekX);
             local.pomerY=(double)ui->frame1->height()/2.5-(local.pomer*local.pocetBuniekY);
-
         }
         else{
             local.pomer=(double)(local.Ypixels/local.pocetBuniekY);
@@ -733,7 +820,7 @@ void MainWindow::paintEvent(QPaintEvent *event)
 
     }
 
-    if(local.show_Map_or_Camera=="map"&&!imgIn.isNull())
+    if(local.show_Map_or_Camera=="map"&&!imgIn.isNull()&&MODE!=2)
     {
        //rescale map to main frame
         painter.drawImage(80,80,local.mapImage.scaled(ui->frame1->width()-360,ui->frame1->height()-160,Qt::KeepAspectRatio,Qt::TransformationMode()));
@@ -751,6 +838,15 @@ void MainWindow::paintEvent(QPaintEvent *event)
         painter.setBrush((Qt::white));
        //draw robot in map
         painter.drawEllipse(((60.0+(local.robotX*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.robotY*10.0)-local.minMapY)*local.pomer)-80-1.5*local.pomer-local.pomerY,3.0*local.pomer,3.0*local.pomer);
+
+
+        if(MODE==2&&!local.requiredPosX.empty()){
+            painter.drawEllipse(((60.0+(local.shortestX*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.shortestY *10.0)-local.minMapY)*local.pomer)-80-1.5*local.pomer-local.pomerY,3.0*local.pomer,3.0*local.pomer);
+            painter.drawEllipse(((60.0+(local.shortestX2*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.shortestY2 *10.0)-local.minMapY)*local.pomer)-1.5*local.pomer-80-local.pomerY,3.0*local.pomer,3.0*local.pomer);
+            painter.drawEllipse(((60.0+(local.shortestX*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.shortestY *10.0)-local.minMapY)*local.pomer)-80-1.5*local.pomer-local.pomerY,3.0*local.pomer,3.0*local.pomer);
+            painter.drawEllipse(((60.0+(local.shortestX2*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.shortestY2 *10.0)-local.minMapY)*local.pomer)-1.5*local.pomer-80-local.pomerY,3.0*local.pomer,3.0*local.pomer);
+
+        }
 
        //if there is some required position then we paint it
         if(local.selectedPoints.size()>0){
@@ -779,6 +875,64 @@ void MainWindow::paintEvent(QPaintEvent *event)
         painter.drawLine(((60.0+(local.robotX*10.0)-local.minMapX)*local.pomer)+80, ui->frame1->height()-((60.0+(local.robotY*10.0)-local.minMapY)*local.pomer)-80-local.pomerY, ((60.0+(local.robotX*10.0)-local.minMapX)*local.pomer)+80+x,ui->frame1->height()-((60.0+(local.robotY*10.0)-local.minMapY)*local.pomer)-80-local.pomerY-y);
 
     }
+
+    if(local.show_Map_or_Camera=="map"&&!imgIn.isNull()&&MODE==2)
+    {
+        local.Ypixels=ui->frame1->height()-160;
+        local.Xpixels=ui->frame1->width()-360;
+
+        if((local.Xpixels/local.pocetBuniekX)<(local.Ypixels/local.pocetBuniekY)){
+            local.pomer=(double)(local.Xpixels/local.pocetBuniekX);
+            local.pomerY=(double)ui->frame1->height()-160-(local.pomer*local.pocetBuniekY);
+        }
+        else{
+            local.pomer=(double)(local.Ypixels/local.pocetBuniekY);
+        }
+
+        painter.setBrush((Qt::white));
+       //draw robot in map
+        painter.drawEllipse(((60.0+(local.robotX*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.robotY*10.0)-local.minMapY)*local.pomer)-80-1.5*local.pomer-local.pomerY,3.0*local.pomer,3.0*local.pomer);
+
+
+        if(MODE==2&&!local.requiredPosX.empty()){
+            painter.drawEllipse(((60.0+(local.shortestX*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.shortestY *10.0)-local.minMapY)*local.pomer)-80-1.5*local.pomer-local.pomerY,3.0*local.pomer,3.0*local.pomer);
+            painter.drawEllipse(((60.0+(local.shortestX2*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.shortestY2 *10.0)-local.minMapY)*local.pomer)-1.5*local.pomer-80-local.pomerY,3.0*local.pomer,3.0*local.pomer);
+            painter.drawEllipse(((60.0+(local.shortestX*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.shortestY *10.0)-local.minMapY)*local.pomer)-80-1.5*local.pomer-local.pomerY,3.0*local.pomer,3.0*local.pomer);
+            painter.drawEllipse(((60.0+(local.shortestX2*10.0)-local.minMapX)*local.pomer)+80-1.5*local.pomer,  ui->frame1->height()-((60.0+(local.shortestY2 *10.0)-local.minMapY)*local.pomer)-1.5*local.pomer-80-local.pomerY,3.0*local.pomer,3.0*local.pomer);
+
+        }
+
+       //if there is some required position then we paint it
+        if(local.selectedPoints.size()>0){
+            pero.setStyle(Qt::SolidLine);
+            pero.setWidth(local.pomer/2);
+            pero.setColor(Qt::white);
+            painter.setPen(pero);
+           //draw line from robot to required position
+            painter.drawLine(((60.0+(local.robotX*10.0)-local.minMapX)*local.pomer)+80, ui->frame1->height()-((60.0+(local.robotY*10.0)-local.minMapY)*local.pomer)-80-local.pomerY,((get<0>(local.selectedPoints.front())-local.minMapX)*local.pomer)+80 ,ui->frame1->height()-((get<1>(local.selectedPoints.front())-local.minMapY)*local.pomer)-80-local.pomerY);
+
+            pero.setStyle(Qt::SolidLine);
+            pero.setWidth(local.pomer/4);
+            painter.setPen(pero);
+            painter.setBrush((Qt::red));
+           //draw point where required position is
+            painter.drawEllipse(((get<0>(local.selectedPoints.front())-local.minMapX)*local.pomer)+80-0.75*local.pomer ,ui->frame1->height()-((get<1>(local.selectedPoints.front())-local.minMapY)*local.pomer)-80-0.75*local.pomer-local.pomerY,1.5*local.pomer,1.5*local.pomer);
+
+        }
+        pero.setStyle(Qt::SolidLine);
+        pero.setWidth(local.pomer/4);
+        pero.setColor(Qt::black);
+        painter.setPen(pero);
+        int y=sin(local.gyroAngle_180_180/100*PI/180)*1.5*local.pomer;
+        int x=cos(local.gyroAngle_180_180/100*PI/180)*1.5*local.pomer;
+       //draw rotating line on robot according rotation of robot
+        painter.drawLine(((60.0+(local.robotX*10.0)-local.minMapX)*local.pomer)+80, ui->frame1->height()-((60.0+(local.robotY*10.0)-local.minMapY)*local.pomer)-80-local.pomerY, ((60.0+(local.robotX*10.0)-local.minMapX)*local.pomer)+80+x,ui->frame1->height()-((60.0+(local.robotY*10.0)-local.minMapY)*local.pomer)-80-local.pomerY-y);
+
+    }
+
+
+
+
 
 
     if(showSkeleton==false&&ui->widget->isVisible()){
@@ -941,6 +1095,8 @@ void MainWindow::on_pushButton_12_clicked()
         if(MODE==2){
             local.checkRequiredPosX.push_back(ui->lineEdit_X->text().toDouble());
             local.checkRequiredPosY.push_back(ui->lineEdit_Y->text().toDouble());
+            local.mozes=true;
+
         }
         if(MODE==3){
             local.checkRequiredPosX.push_back(ui->lineEdit_X->text().toDouble());

@@ -47,8 +47,7 @@
 #include "regulator.h"
 #include <tuple>
 #include "math.h"
-#include <QDoubleValidator>
-
+#include <cstring>
 
 #define ROBOT_VPRED 0x01
 #define ROBOT_VZAD 0x02
@@ -267,6 +266,16 @@ struct local
     double shortestX=1000000;
     double shortestY=1000000;
     double shortest=1000000;
+    double shortestWay;
+
+    double shortestX2=1000000;
+    double shortestY2=1000000;
+    double shortest2=1000000;
+    double shortestWay2;
+
+    double finalShortestX;
+    double finalShortestY;
+
 
     int maxMapY=0;
     int minMapY=10000000;
@@ -275,7 +284,6 @@ struct local
     int minMapX=10000000;
 
     bool prekazka=false;
-    double shortestWay;
 
     string show_Map_or_Camera="camera";
 
@@ -297,9 +305,10 @@ struct local
 
 
     bool showObstacleWarning=false;
-
+    bool mozes=true;
 
     double incPer=0;
+    int obstacleindex=-1;
 
     vector< tuple <double,double> > selectedPoints;
     QImage mapImage;
@@ -473,7 +482,7 @@ private:
         MODE=3.  Uloha3;
         MODE=4.  Uloha4;
     */
-    short MODE=4;
+    short MODE=2;
 
 protected:
 //    void mousePressEvent(QMouseEvent *event) override;
